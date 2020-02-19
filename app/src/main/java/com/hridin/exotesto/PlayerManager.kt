@@ -16,7 +16,7 @@ import timber.log.Timber
 import java.io.IOException
 import java.util.*
 
-class PlayerManager(private val context: Context) : Player.EventListener {
+class PlayerManager(private val context: Context, private val preferensesRepository: PreferensesRepository) : Player.EventListener {
 
     private var exoPlayer: SimpleExoPlayer? = null
     private var drmSessionManager: DefaultDrmSessionManager<FrameworkMediaCrypto>? = null
@@ -38,7 +38,8 @@ class PlayerManager(private val context: Context) : Player.EventListener {
     }
 
     suspend fun play(url: String) {
-        val offlineLicenseKeySetId = downloadLicense(url)
+        val offlineLicenseKeySetId = preferensesRepository.offlineLicenseKeySetId ?: downloadLicense(url)
+
         Timber.d(Arrays.toString(offlineLicenseKeySetId))
 
         drmSessionManager?.setMode(DefaultDrmSessionManager.MODE_PLAYBACK, offlineLicenseKeySetId)
@@ -51,44 +52,6 @@ class PlayerManager(private val context: Context) : Player.EventListener {
         Timber.d(error)
     }
 
-//    private suspend fun getExoPlayerOffline(licenseUrl: String, token: String): SimpleExoPlayer {
-//        val mediaDrmCallback = HttpMediaDrmCallback(licenseUrl, dataSourceFactory)
-//            .apply { setKeyRequestProperty("customdata", token) }
-//        val offlineLicenseHelper = OfflineLicenseHelper(
-//            C.WIDEVINE_UUID,
-//            FrameworkMediaDrm.newInstance(C.WIDEVINE_UUID), mediaDrmCallback, null)
-//
-//        var drmInitData: DrmInitData? = null
-//        try {
-//            drmInitData = getDrmInitData(url)
-//        } catch (e: IOException) {
-//            Timber.d(e)
-//        } catch (e: InterruptedException) {
-//            Timber.d(e)
-//        }
-//        Timber.d("drmInitData=%s", drmInitData.toString())
-////        if (drmInitData != null) {
-//        val licenseId = offlineLicenseHelper.downloadLicense(drmInitData)
-//        Timber.d(Arrays.toString(licenseId))
-////        }
-//
-//
-//        return getExoPlayerOnline()
-////        return ExoPlayerFactory.newSimpleInstance(this@MainActivity).also {
-////            it.playWhenReady = true
-////        }
-//    }
-//
-//    private fun getExoPlayerOnline(): SimpleExoPlayer {
-//        val rendersFactory = DefaultRenderersFactory(this)
-//        val trackSelector = DefaultTrackSelector()
-//        drmSessionManager = buildDrmSessionManager(MainActivity.licenseUrl, hashMapOf("customdata" to MainActivity.token))
-//
-//        return ExoPlayerFactory.newSimpleInstance(this, rendersFactory, trackSelector, drmSessionManager).also {
-//            it.playWhenReady = true
-//        }
-//    }
-//
     private fun buildDrmSessionManager(licenseUrl: String, hashMap: HashMap<String, String>): DefaultDrmSessionManager<FrameworkMediaCrypto> {
         mediaDrmCallback = HttpMediaDrmCallback(licenseUrl, dataSourceFactory)
 
@@ -125,7 +88,7 @@ class PlayerManager(private val context: Context) : Player.EventListener {
             Timber.d(e)
         }
         Timber.d("drmInitData=%s", drmInitData.toString())
-        return if (drmInitData != null) offlineLicenseHelper.downloadLicense(drmInitData)
+        return if (drmInitData != null) offlineLicenseHelper.downloadLicense(drmInitData).apply { preferensesRepository.offlineLicenseKeySetId = this }
         else null
     }
 
