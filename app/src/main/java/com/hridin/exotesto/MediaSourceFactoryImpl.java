@@ -4,12 +4,15 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.source.ConcatenatingMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
+
+import java.util.List;
 
 class MediaSourceFactoryImpl {
 
@@ -38,5 +41,15 @@ class MediaSourceFactoryImpl {
         }
 
         return mediaSource;
+    }
+
+    static ConcatenatingMediaSource create(List<String> playlist, DefaultHttpDataSourceFactory dataSourceFactory) {
+        final ConcatenatingMediaSource concatenatingMediaSource = new ConcatenatingMediaSource();
+
+        for (String url : playlist) {
+            concatenatingMediaSource.addMediaSource(create(url, dataSourceFactory));
+        }
+
+        return concatenatingMediaSource;
     }
 }

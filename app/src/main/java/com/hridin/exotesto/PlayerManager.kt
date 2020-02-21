@@ -16,7 +16,7 @@ import timber.log.Timber
 import java.io.IOException
 import java.util.*
 
-class PlayerManager(private val context: Context, private val preferensesRepository: PreferensesRepository) : Player.EventListener {
+class PlayerManager(private val context: Context, private val preferencesRepository: PreferencesRepository) : Player.EventListener {
 
     private var exoPlayer: SimpleExoPlayer? = null
     private var drmSessionManager: DefaultDrmSessionManager<FrameworkMediaCrypto>? = null
@@ -38,7 +38,7 @@ class PlayerManager(private val context: Context, private val preferensesReposit
     }
 
     suspend fun play(url: String) {
-        val offlineLicenseKeySetId = preferensesRepository.offlineLicenseKeySetId ?: downloadLicense(url)
+        val offlineLicenseKeySetId = preferencesRepository.getOfflineLicenseKeySetId(url) ?: downloadLicense(url)
 
         Timber.d(Arrays.toString(offlineLicenseKeySetId))
 
@@ -75,9 +75,7 @@ class PlayerManager(private val context: Context, private val preferensesReposit
     }
 
     private suspend fun downloadLicense(urlManifest: String): ByteArray? {
-        val offlineLicenseHelper = OfflineLicenseHelper(
-            C.WIDEVINE_UUID,
-            FrameworkMediaDrm.newInstance(C.WIDEVINE_UUID), mediaDrmCallback, null)
+        val offlineLicenseHelper = OfflineLicenseHelper(C.WIDEVINE_UUID, FrameworkMediaDrm.newInstance(C.WIDEVINE_UUID), mediaDrmCallback, null)
 
         var drmInitData: DrmInitData? = null
         try {
@@ -87,8 +85,8 @@ class PlayerManager(private val context: Context, private val preferensesReposit
         } catch (e: InterruptedException) {
             Timber.d(e)
         }
-        Timber.d("drmInitData=%s", drmInitData.toString())
-        return if (drmInitData != null) offlineLicenseHelper.downloadLicense(drmInitData).apply { preferensesRepository.offlineLicenseKeySetId = this }
+        Timber.d("Online:drmInitData=%s", drmInitData.toString())
+        return if (drmInitData != null) offlineLicenseHelper.downloadLicense(drmInitData).apply { preferencesRepository.setOfflineLicenseKeySetId(urlManifest, this) }
         else null
     }
 
