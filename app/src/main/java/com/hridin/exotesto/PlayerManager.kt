@@ -30,10 +30,12 @@ class PlayerManager(private val context: Context, private val preferencesReposit
         drmSessionManager = buildDrmSessionManager(licenseUrl, hashMapOf("customdata" to token))
 
         exoPlayer = ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager)
+        exoPlayer?.addListener(this)
         playerView.player = exoPlayer
     }
 
     fun release() {
+        exoPlayer?.removeListener(this)
         exoPlayer?.release()
     }
 
@@ -66,12 +68,17 @@ class PlayerManager(private val context: Context, private val preferencesReposit
     }
 
     @Throws(IOException::class, InterruptedException::class)
-    private suspend fun getDrmInitData(contentUrl: String): DrmInitData? = withContext(Dispatchers.IO) {
+    private suspend fun getDrmInitData(manifestUrl: String): DrmInitData? = withContext(Dispatchers.IO) {
         val dataSource = dataSourceFactory.createDataSource()
-        val manifest = DashUtil.loadManifest(dataSource, Uri.parse(contentUrl))
+        val manifest = DashUtil.loadManifest(dataSource, Uri.parse(manifestUrl))
         val period = manifest.getPeriod(0)
         Timber.d("period.id = %s", period.id)
-        DashUtil.loadDrmInitData(dataSource, manifest.getPeriod(0))
+
+//        val representation = manifest.getPeriod(0).adaptationSets.first().representations.first()
+
+//        val dashSegmentIndex = (representation.index as Representation.MultiSegmentRepresentation)
+
+        DashUtil.loadDrmInitData(dataSource, manifest.getPeriod(0))// ?: dashSegmentIndex.format.drmInitData
     }
 
     private suspend fun downloadLicense(urlManifest: String): ByteArray? {
@@ -85,9 +92,16 @@ class PlayerManager(private val context: Context, private val preferencesReposit
         } catch (e: InterruptedException) {
             Timber.d(e)
         }
-        Timber.d("Online:drmInitData=%s", drmInitData.toString())
+        Timber.d("Online:drmInitData=%s", drmInitData)
         return if (drmInitData != null) offlineLicenseHelper.downloadLicense(drmInitData).apply { preferencesRepository.setOfflineLicenseKeySetId(urlManifest, this) }
         else null
+    }
+
+    override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
+        super.onPlayerStateChanged(playWhenReady, playbackState)
+        if (playbackState == Player.STATE_READY) {
+            TODO("Download License with exoPlayer?.videoFormat?.drmInitData")
+        }
     }
 
     private val defaultDrmSessionEventListener = object : DefaultDrmSessionEventListener {
