@@ -9,6 +9,7 @@ import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
+import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 
@@ -16,7 +17,7 @@ import java.util.List;
 
 class MediaSourceFactoryImpl {
 
-    static MediaSource create(String url, DefaultHttpDataSourceFactory dataSourceFactory) {
+    static MediaSource create(String url, DataSource.Factory dataSourceFactory) {
         if (TextUtils.isEmpty(url)) return null;
         if (url.startsWith("/")) {
             url = "file://" + url;
