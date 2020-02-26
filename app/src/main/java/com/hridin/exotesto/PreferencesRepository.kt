@@ -8,10 +8,11 @@ class PreferencesRepository(context: Context) {
 
     private val preferences = PreferenceManager.getDefaultSharedPreferences(context)
 
-    fun setOfflineLicenseKeySetId(dashManifest: String, license: ByteArray) {
-        preferences.edit()
-            .putString(dashManifest, Base64.encodeToString(license, Base64.DEFAULT))
-            .apply()
+    fun setOfflineLicenseKeySetId(dashManifest: String, license: ByteArray?) {
+        if (license != null)
+            preferences.edit()
+                .putString(dashManifest, Base64.encodeToString(license, Base64.DEFAULT))
+                .apply()
     }
 
     fun getOfflineLicenseKeySetId(dashManifest: String): ByteArray? {
