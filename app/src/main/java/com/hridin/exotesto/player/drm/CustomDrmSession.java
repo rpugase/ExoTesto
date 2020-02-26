@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hridin.exotesto.custom;
+package com.hridin.exotesto.player.drm;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -51,7 +51,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @TargetApi(18)
-/* package */ class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T> {
+public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T> {
 
   /**
    * Manages provisioning requests.

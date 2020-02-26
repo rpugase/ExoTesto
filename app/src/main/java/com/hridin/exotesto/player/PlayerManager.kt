@@ -1,4 +1,4 @@
-package com.hridin.exotesto
+package com.hridin.exotesto.player
 
 import android.content.Context
 import android.os.Handler
@@ -10,7 +10,11 @@ import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSourceFactory
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.util.Util
-import com.hridin.exotesto.custom.CustomDrmSessionManager
+import com.hridin.exotesto.R
+import com.hridin.exotesto.data.DrmSystem
+import com.hridin.exotesto.getMethodName
+import com.hridin.exotesto.player.drm.CustomDrmSessionManager
+import com.hridin.exotesto.repository.PreferencesRepository
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import timber.log.Timber

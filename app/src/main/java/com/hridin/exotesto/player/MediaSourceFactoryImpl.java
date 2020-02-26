@@ -1,4 +1,4 @@
-package com.hridin.exotesto;
+package com.hridin.exotesto.player;
 
 import android.net.Uri;
 import android.text.TextUtils;
@@ -15,7 +15,7 @@ import com.google.android.exoplayer2.util.Util;
 
 import java.util.List;
 
-class MediaSourceFactoryImpl {
+public class MediaSourceFactoryImpl {
 
     static MediaSource create(String url, DataSource.Factory dataSourceFactory) {
         if (TextUtils.isEmpty(url)) return null;

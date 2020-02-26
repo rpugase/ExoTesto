@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.hridin.exotesto.custom;
+package com.hridin.exotesto.player.drm;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -46,7 +46,7 @@ import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.EventDispatcher;
 import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.Util;
-import com.hridin.exotesto.PreferencesRepository;
+import com.hridin.exotesto.repository.PreferencesRepository;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
