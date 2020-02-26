@@ -9,6 +9,13 @@ import kotlinx.coroutines.cancel
 
 class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
 
+    /**
+     * TODO 1: Вынести в json инфу про стримы и обрабатывать их на нажатии на клавиатуре (1..9)
+     * TODO 2: Сделать UI для модификации: manfiest, token, licenseUrl, drmSystem. Вывод списка снизу
+     * TODO 3: Поддержка интента, чтобы запускать по ADB
+     * TODO 4: Логгирование ошибок на отдельном экране
+     */
+
     companion object {
         private const val url =
             "https://streamer.vip.ministra.com/buydrm_sameid_ictv/index.mpd" // buydrm
