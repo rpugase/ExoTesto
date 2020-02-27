@@ -14,11 +14,10 @@ class StreamRepository(private val preferencesRepository: PreferencesRepository,
 
         if (streamJson.isNotEmpty()) return streamJson
 
-        val buffer = byteArrayOf()
-        assetManager.open("streams.json").apply {
-            read(buffer)
-            close()
-        }
+        val inputStream = assetManager.open("streams.json")
+        val buffer = ByteArray(inputStream.available())
+        inputStream.read(buffer)
+        inputStream.close()
 
         return Json(JsonConfiguration.Stable).parse(Stream.serializer().list, String(buffer))
     }

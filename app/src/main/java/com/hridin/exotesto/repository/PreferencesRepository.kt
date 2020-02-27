@@ -18,7 +18,7 @@ class PreferencesRepository(context: Context) {
 
     var streamJson: List<Stream>
         get() = Json(JsonConfiguration.Stable)
-            .parse(Stream.serializer().list, preferences.getString(KEY_STREAM_JSON, "{}")!!)
+            .parse(Stream.serializer().list, preferences.getString(KEY_STREAM_JSON, "[]")!!)
         set(value) {
             preferences.edit()
                 .putString(KEY_STREAM_JSON, Json(JsonConfiguration.Stable).stringify(Stream.serializer().list, value))
