@@ -26,7 +26,7 @@ class StreamListFragment : Fragment() {
             onItemClick = {
                 fragmentManager?.apply {
                     beginTransaction()
-                        .replace(R.id.container, PlayerFragment.newInstance(it))
+                        .add(R.id.container, PlayerFragment.newInstance(it))
                         .addToBackStack(null)
                         .commit()
                 }

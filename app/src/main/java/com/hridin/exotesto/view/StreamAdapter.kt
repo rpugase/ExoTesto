@@ -37,7 +37,7 @@ class StreamAdapter : RecyclerView.Adapter<StreamAdapter.StreamViewHolder>() {
                 tvName.text = stream.channelName
                 tvManifestUrl.text = stream.manifestUrl
                 tvLicenseUrl.text = stream.drmInfo.licenseUrl
-                tvLicenseUrl.text = stream.drmInfo.drmSystem.toString().toLowerCase(Locale.US)
+                tvDrmSystem.text = stream.drmInfo.drmSystem.toString().toLowerCase(Locale.US)
                 tvToken.text = stream.drmInfo.token
 
                 setOnClickListener { onItemClick?.invoke(stream) }
