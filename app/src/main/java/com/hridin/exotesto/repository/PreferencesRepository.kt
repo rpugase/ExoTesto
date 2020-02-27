@@ -38,4 +38,8 @@ class PreferencesRepository(context: Context) {
 
         return Base64.decode(licenseBase64, Base64.DEFAULT)
     }
+
+    fun clear() {
+        preferences.edit().clear().apply()
+    }
 }

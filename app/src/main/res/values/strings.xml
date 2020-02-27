@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">ExoTesto</string>
+    <string name="clear_licenses">Clear Licenses</string>
 </resources>

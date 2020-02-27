@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.hridin.exotesto.R
@@ -13,7 +14,8 @@ import kotlinx.android.synthetic.main.fragment_stream_list.*
 
 class StreamListFragment : Fragment() {
 
-    private val mStreamRepository by lazy { StreamRepository(PreferencesRepository(context!!.applicationContext), context!!.assets) }
+    private val mPreferencesRepository by lazy { PreferencesRepository(context!!.applicationContext) }
+    private val mStreamRepository by lazy { StreamRepository(mPreferencesRepository, context!!.assets) }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_stream_list, container, false)
@@ -32,5 +34,9 @@ class StreamListFragment : Fragment() {
                 }
             }
         }
+
+        ViewCompat.setNestedScrollingEnabled(rvStreams, false)
+
+        btnCleanLicenses.setOnClickListener { mPreferencesRepository.clear() }
     }
 }
