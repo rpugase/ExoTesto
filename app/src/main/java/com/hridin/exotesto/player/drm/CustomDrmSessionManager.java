@@ -24,6 +24,7 @@ import android.text.TextUtils;
 import android.util.Base64;
 
 import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.C;
@@ -46,7 +47,6 @@ import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.EventDispatcher;
 import com.google.android.exoplayer2.util.Log;
 import com.google.android.exoplayer2.util.Util;
-import com.hridin.exotesto.repository.PreferencesRepository;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
@@ -72,6 +72,13 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
     private MissingSchemeDataException(UUID uuid) {
       super("Media does not support uuid: " + uuid);
     }
+  }
+
+  public interface OfflineLicenseRepository {
+
+    byte[] getLicenseId(@NonNull String psshKey);
+
+    void saveLicenseId(@NonNull String psshKey, @NonNull byte[] licenseId);
   }
 
   /**
@@ -115,12 +122,12 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
 
   private final List<CustomDrmSession<T>> sessions;
   private final List<CustomDrmSession<T>> provisioningSessions;
-  private final PreferencesRepository preferencesRepository;
 
   private @Nullable Looper playbackLooper;
   private int mode;
   private @Nullable byte[] offlineLicenseKeySetId;
-
+  private OfflineLicenseRepository offlineLicenseRepository;
+  private boolean forceOnlineOneTime;
   /* package */ volatile @Nullable MediaDrmHandler mediaDrmHandler;
 
   /**
@@ -132,9 +139,9 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
    * @throws UnsupportedDrmException If the specified DRM scheme is not supported.
    */
   public static CustomDrmSessionManager<FrameworkMediaCrypto> newWidevineInstance(
-      MediaDrmCallback callback, @Nullable HashMap<String, String> optionalKeyRequestParameters, PreferencesRepository preferencesRepository)
+      MediaDrmCallback callback, @Nullable HashMap<String, String> optionalKeyRequestParameters)
       throws UnsupportedDrmException {
-    return newFrameworkInstance(C.WIDEVINE_UUID, callback, optionalKeyRequestParameters, preferencesRepository);
+    return newFrameworkInstance(C.WIDEVINE_UUID, callback, optionalKeyRequestParameters);
   }
 
   /**
@@ -156,7 +163,7 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
     } else {
       optionalKeyRequestParameters = null;
     }
-    return newFrameworkInstance(C.PLAYREADY_UUID, callback, optionalKeyRequestParameters, null);
+    return newFrameworkInstance(C.PLAYREADY_UUID, callback, optionalKeyRequestParameters);
   }
 
   /**
@@ -171,8 +178,7 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
   public static CustomDrmSessionManager<FrameworkMediaCrypto> newFrameworkInstance(
       UUID uuid,
       MediaDrmCallback callback,
-      @Nullable HashMap<String, String> optionalKeyRequestParameters,
-      PreferencesRepository preferencesRepository)
+      @Nullable HashMap<String, String> optionalKeyRequestParameters)
       throws UnsupportedDrmException {
     return new CustomDrmSessionManager<>(
         uuid,
@@ -180,8 +186,7 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
         callback,
         optionalKeyRequestParameters,
         /* multiSession= */ false,
-        INITIAL_DRM_REQUEST_RETRY_COUNT,
-        preferencesRepository);
+        INITIAL_DRM_REQUEST_RETRY_COUNT);
   }
 
   /**
@@ -195,8 +200,7 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
       UUID uuid,
       ExoMediaDrm<T> mediaDrm,
       MediaDrmCallback callback,
-      @Nullable HashMap<String, String> optionalKeyRequestParameters,
-      PreferencesRepository preferencesRepository
+      @Nullable HashMap<String, String> optionalKeyRequestParameters
   ) {
     this(
         uuid,
@@ -204,8 +208,7 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
         callback,
         optionalKeyRequestParameters,
         /* multiSession= */ false,
-        INITIAL_DRM_REQUEST_RETRY_COUNT,
-            preferencesRepository);
+        INITIAL_DRM_REQUEST_RETRY_COUNT);
   }
 
   /**
@@ -222,16 +225,14 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
       ExoMediaDrm<T> mediaDrm,
       MediaDrmCallback callback,
       @Nullable HashMap<String, String> optionalKeyRequestParameters,
-      boolean multiSession,
-      PreferencesRepository preferencesRepository) {
+      boolean multiSession) {
     this(
         uuid,
         mediaDrm,
         callback,
         optionalKeyRequestParameters,
         multiSession,
-        INITIAL_DRM_REQUEST_RETRY_COUNT,
-            preferencesRepository);
+        INITIAL_DRM_REQUEST_RETRY_COUNT);
   }
 
   /**
@@ -251,12 +252,10 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
       MediaDrmCallback callback,
       @Nullable HashMap<String, String> optionalKeyRequestParameters,
       boolean multiSession,
-      int initialDrmRequestRetryCount,
-      PreferencesRepository preferencesRepository) {
+      int initialDrmRequestRetryCount) {
     Assertions.checkNotNull(uuid);
     Assertions.checkNotNull(mediaDrm);
     Assertions.checkArgument(!C.COMMON_PSSH_UUID.equals(uuid), "Use C.CLEARKEY_UUID instead");
-    this.preferencesRepository = preferencesRepository;
     this.uuid = uuid;
     this.mediaDrm = mediaDrm;
     this.callback = callback;
@@ -446,20 +445,22 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
     if (session == null) {
       // Create a new session.
 
-      if (preferencesRepository != null) {
+      if (offlineLicenseRepository != null && !forceOnlineOneTime) {
         final String keyByPssh = Base64.encodeToString(drmInitData.get(0).data, Base64.DEFAULT);
-        offlineLicenseKeySetId = preferencesRepository.getOfflineLicenseKeySetId(keyByPssh);
+        offlineLicenseKeySetId = offlineLicenseRepository.getLicenseId(keyByPssh);
         if (offlineLicenseKeySetId == null) {
           final OfflineLicenseHelper offlineLicenseHelper = new OfflineLicenseHelper(uuid, mediaDrm, callback, optionalKeyRequestParameters);
           try {
             offlineLicenseKeySetId = offlineLicenseHelper.downloadLicense(drmInitData);
-            preferencesRepository.setOfflineLicenseKeySetId(keyByPssh, offlineLicenseKeySetId);
+            offlineLicenseRepository.saveLicenseId(keyByPssh, offlineLicenseKeySetId);
           } catch (DrmSessionException e) {
             e.printStackTrace();
           } finally {
             offlineLicenseHelper.release();
           }
         }
+      } else if (forceOnlineOneTime) {
+        offlineLicenseKeySetId = null;
       }
 
       session =
@@ -529,6 +530,14 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
       session.onProvisionError(error);
     }
     provisioningSessions.clear();
+  }
+
+  public void setOfflineLicenseRepository(OfflineLicenseRepository offlineLicenseRepository) {
+    this.offlineLicenseRepository = offlineLicenseRepository;
+  }
+
+  public void forceOnlineOneTime() {
+    this.forceOnlineOneTime = true;
   }
 
   // Internal methods.

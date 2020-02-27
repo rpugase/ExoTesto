@@ -26,10 +26,10 @@ class PreferencesRepository(context: Context) {
         }
 
 
-    fun setOfflineLicenseKeySetId(dashManifest: String, license: ByteArray?) {
+    fun setOfflineLicenseKeySetId(psshKey: String, license: ByteArray?) {
         if (license != null)
             preferences.edit()
-                .putString(dashManifest, Base64.encodeToString(license, Base64.DEFAULT))
+                .putString(psshKey, Base64.encodeToString(license, Base64.DEFAULT))
                 .apply()
     }
 

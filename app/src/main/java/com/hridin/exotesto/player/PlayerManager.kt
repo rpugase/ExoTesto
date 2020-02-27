@@ -1,6 +1,7 @@
 package com.hridin.exotesto.player
 
 import android.content.Context
+import android.media.MediaCodec
 import android.os.Handler
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.drm.DefaultDrmSessionEventListener
@@ -60,18 +61,39 @@ class PlayerManager(private val context: Context, private val preferencesReposit
 
     fun play(url: String) {
         manifestUrl = url
-        val offlineLicenseKeySetId = preferencesRepository.getOfflineLicenseKeySetId(url)
 
-        Timber.d("OFFLINE:licenseId=%s", offlineLicenseKeySetId?.contentToString())
-
-        drmSessionManager?.setMode(CustomDrmSessionManager.MODE_PLAYBACK, offlineLicenseKeySetId)
         exoPlayer?.prepare(MediaSourceFactoryImpl.create(url, dataSourceFactory))
         exoPlayer?.playWhenReady = true
     }
 
     override fun onPlayerError(error: ExoPlaybackException?) {
         super.onPlayerError(error)
-        Timber.d(error)
+
+        when (error?.type) {
+            ExoPlaybackException.TYPE_OUT_OF_MEMORY -> {
+                Timber.d(error, "=====> %s TYPE_OUT_OF_MEMORY", getMethodName())
+            }
+            ExoPlaybackException.TYPE_REMOTE -> {
+                Timber.d(error, "=====> %s TYPE_REMOTE", getMethodName())
+
+            }
+            ExoPlaybackException.TYPE_RENDERER -> {
+                Timber.d(error, "=====> %s TYPE_RENDERER", getMethodName())
+
+                if (error.rendererException is MediaCodec.CryptoException) {
+                    drmSessionManager?.forceOnlineOneTime()
+                    TODO("Reinitialize player")
+                }
+            }
+            ExoPlaybackException.TYPE_SOURCE -> {
+                Timber.d(error, "=====> %s TYPE_SOURCE", getMethodName())
+
+            }
+            ExoPlaybackException.TYPE_UNEXPECTED -> {
+                Timber.d(error, "=====> %s TYPE_UNEXPECTED", getMethodName())
+            }
+            else -> return
+        }
     }
 
     private fun buildDrmSessionManager(licenseUrl: String, hashMap: HashMap<String, String>): CustomDrmSessionManager<FrameworkMediaCrypto> {
@@ -81,8 +103,19 @@ class PlayerManager(private val context: Context, private val preferencesReposit
             mediaDrmCallback?.setKeyRequestProperty(property.key, property.value)
         }
 
-        return CustomDrmSessionManager.newWidevineInstance(mediaDrmCallback, null, preferencesRepository)
-            .also { it.addListener(handler, defaultDrmSessionEventListener) }
+        return CustomDrmSessionManager.newWidevineInstance(mediaDrmCallback, null)
+            .also {
+                it.addListener(handler, defaultDrmSessionEventListener)
+                it.setOfflineLicenseRepository(object : CustomDrmSessionManager.OfflineLicenseRepository {
+                    override fun saveLicenseId(psshKey: String, licenseId: ByteArray) {
+                        preferencesRepository.setOfflineLicenseKeySetId(psshKey, licenseId)
+                    }
+
+                    override fun getLicenseId(psshKey: String): ByteArray? {
+                        return preferencesRepository.getOfflineLicenseKeySetId(psshKey)
+                    }
+                })
+            }
     }
 
     private val defaultDrmSessionEventListener = object : DefaultDrmSessionEventListener {
