@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.accessibility.AccessibilityEvent
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -32,6 +33,13 @@ class StreamListFragment : Fragment() {
                         .addToBackStack(null)
                         .commit()
                 }
+            }
+        }
+
+        rvStreams.post {
+            rvStreams.getChildAt(0)?.apply {
+                requestFocus()
+                sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED)
             }
         }
 
