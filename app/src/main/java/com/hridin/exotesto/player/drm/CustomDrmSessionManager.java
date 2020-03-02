@@ -21,7 +21,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
-import android.util.Base64;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
@@ -41,7 +40,6 @@ import com.google.android.exoplayer2.drm.ExoMediaDrm.OnEventListener;
 import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.MediaDrmCallback;
-import com.google.android.exoplayer2.drm.OfflineLicenseHelper;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
 import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.EventDispatcher;
@@ -127,7 +125,6 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
   private int mode;
   private @Nullable byte[] offlineLicenseKeySetId;
   private OfflineLicenseRepository offlineLicenseRepository;
-  private boolean forceOnlineOneTime;
   /* package */ volatile @Nullable MediaDrmHandler mediaDrmHandler;
 
   /**
@@ -445,24 +442,6 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
     if (session == null) {
       // Create a new session.
 
-      if (offlineLicenseRepository != null && !forceOnlineOneTime) {
-        final String keyByPssh = Base64.encodeToString(drmInitData.get(0).data, Base64.DEFAULT);
-        offlineLicenseKeySetId = offlineLicenseRepository.getLicenseId(keyByPssh);
-        if (offlineLicenseKeySetId == null) {
-          final OfflineLicenseHelper offlineLicenseHelper = new OfflineLicenseHelper(uuid, mediaDrm, callback, optionalKeyRequestParameters);
-          try {
-            offlineLicenseKeySetId = offlineLicenseHelper.downloadLicense(drmInitData);
-            offlineLicenseRepository.saveLicenseId(keyByPssh, offlineLicenseKeySetId);
-          } catch (DrmSessionException e) {
-            e.printStackTrace();
-          } finally {
-            offlineLicenseHelper.release();
-          }
-        }
-      } else if (forceOnlineOneTime) {
-        offlineLicenseKeySetId = null;
-      }
-
       session =
           new CustomDrmSession<>(
               uuid,
@@ -476,6 +455,8 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
               playbackLooper,
               eventDispatcher,
               initialDrmRequestRetryCount);
+
+      session.setOfflineLicenseRepository(offlineLicenseRepository);
       sessions.add(session);
     }
     session.acquire();
@@ -534,10 +515,6 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
 
   public void setOfflineLicenseRepository(OfflineLicenseRepository offlineLicenseRepository) {
     this.offlineLicenseRepository = offlineLicenseRepository;
-  }
-
-  public void forceOnlineOneTime() {
-    this.forceOnlineOneTime = true;
   }
 
   // Internal methods.

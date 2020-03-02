@@ -18,10 +18,12 @@ package com.hridin.exotesto.player.drm;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.media.NotProvisionedException;
+import android.os.ConditionVariable;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Base64;
 import android.util.Pair;
 
 import androidx.annotation.Nullable;
@@ -93,7 +95,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
 
   private final ExoMediaDrm<T> mediaDrm;
   private final ProvisioningManager<T> provisioningManager;
-  private final @DefaultDrmSessionManager.Mode int mode;
+  private @DefaultDrmSessionManager.Mode int mode;
   private final @Nullable HashMap<String, String> optionalKeyRequestParameters;
   private final EventDispatcher<DefaultDrmSessionEventListener> eventDispatcher;
   private final int initialDrmRequestRetryCount;
@@ -113,6 +115,13 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
 
   private @Nullable KeyRequest currentKeyRequest;
   private @Nullable ProvisionRequest currentProvisionRequest;
+
+  private CustomDrmSessionManager.OfflineLicenseRepository offlineLicenseRepository;
+  private ConditionVariable conditionVariable = new ConditionVariable();
+
+  public void setOfflineLicenseRepository(CustomDrmSessionManager.OfflineLicenseRepository offlineLicenseRepository) {
+    this.offlineLicenseRepository = offlineLicenseRepository;
+  }
 
   /**
    * Instantiates a new DRM session.
@@ -164,10 +173,10 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
     this.eventDispatcher = eventDispatcher;
     state = STATE_OPENING;
 
-    postResponseHandler = new PostResponseHandler(playbackLooper);
     requestHandlerThread = new HandlerThread("DrmRequestHandler");
     requestHandlerThread.start();
     postRequestHandler = new PostRequestHandler(requestHandlerThread.getLooper());
+    postResponseHandler = new PostResponseHandler(requestHandlerThread.getLooper());
   }
 
   // Life cycle.
@@ -178,6 +187,16 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
         return;
       }
       if (openInternal(true)) {
+        if (offlineLicenseRepository != null) {
+          final String keyByPssh = Base64.encodeToString(schemeDatas.get(0).data, Base64.DEFAULT);
+          offlineLicenseKeySetId = offlineLicenseRepository.getLicenseId(keyByPssh);
+          if (offlineLicenseKeySetId == null) {
+            mode = CustomDrmSessionManager.MODE_DOWNLOAD;
+            doLicense(true);
+            offlineLicenseRepository.saveLicenseId(keyByPssh, offlineLicenseKeySetId);
+            mode = CustomDrmSessionManager.MODE_PLAYBACK;
+          }
+        }
         doLicense(true);
       }
     }
@@ -202,6 +221,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
         mediaDrm.closeSession(sessionId);
         sessionId = null;
         eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmSessionReleased);
+        conditionVariable.open();
       }
       return true;
     }
@@ -285,6 +305,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
     try {
       sessionId = mediaDrm.openSession();
       eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmSessionAcquired);
+      conditionVariable.open();
       mediaCrypto = mediaDrm.createMediaCrypto(sessionId);
       state = STATE_OPENED;
       return true;
@@ -341,6 +362,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
           } else {
             state = STATE_OPENED_WITH_KEYS;
             eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmKeysRestored);
+            conditionVariable.open();
           }
         }
         break;
@@ -389,9 +411,10 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
 
   private void postKeyRequest(byte[] scope, int type, boolean allowRetry) {
     try {
-      currentKeyRequest =
-          mediaDrm.getKeyRequest(scope, schemeDatas, type, optionalKeyRequestParameters);
+      currentKeyRequest = mediaDrm.getKeyRequest(scope, schemeDatas, type, optionalKeyRequestParameters);
+      conditionVariable.close();
       postRequestHandler.post(MSG_KEYS, currentKeyRequest, allowRetry);
+      conditionVariable.block();
     } catch (Exception e) {
       onKeysError(e);
     }
@@ -414,6 +437,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
       if (mode == DefaultDrmSessionManager.MODE_RELEASE) {
         mediaDrm.provideKeyResponse(Util.castNonNull(offlineLicenseKeySetId), responseData);
         eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmKeysRestored);
+        conditionVariable.open();
       } else {
         byte[] keySetId = mediaDrm.provideKeyResponse(sessionId, responseData);
         if ((mode == DefaultDrmSessionManager.MODE_DOWNLOAD
@@ -423,6 +447,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
         }
         state = STATE_OPENED_WITH_KEYS;
         eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmKeysLoaded);
+        conditionVariable.open();
       }
     } catch (Exception e) {
       onKeysError(e);
@@ -447,6 +472,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
   private void onError(final Exception e) {
     lastException = new DrmSessionException(e);
     eventDispatcher.dispatch(listener -> listener.onDrmSessionManagerError(e));
+    conditionVariable.open();
     if (state != STATE_OPENED_WITH_KEYS) {
       state = STATE_ERROR;
     }

@@ -81,8 +81,8 @@ class PlayerManager(private val context: Context, private val preferencesReposit
                 Timber.d(error, "=====> %s TYPE_RENDERER", getMethodName())
 
                 if (error.rendererException is MediaCodec.CryptoException) {
-                    drmSessionManager?.forceOnlineOneTime()
-                    TODO("Reinitialize player")
+//                    drmSessionManager?.forceOnlineOneTime()
+//                    TODO("Reinitialize player")
                 }
             }
             ExoPlaybackException.TYPE_SOURCE -> {
@@ -106,16 +106,18 @@ class PlayerManager(private val context: Context, private val preferencesReposit
         return CustomDrmSessionManager.newWidevineInstance(mediaDrmCallback, null)
             .also {
                 it.addListener(handler, defaultDrmSessionEventListener)
-                it.setOfflineLicenseRepository(object : CustomDrmSessionManager.OfflineLicenseRepository {
-                    override fun saveLicenseId(psshKey: String, licenseId: ByteArray) {
-                        preferencesRepository.setOfflineLicenseKeySetId(psshKey, licenseId)
-                    }
-
-                    override fun getLicenseId(psshKey: String): ByteArray? {
-                        return preferencesRepository.getOfflineLicenseKeySetId(psshKey)
-                    }
-                })
+                it.setOfflineLicenseRepository(offlineLicenseRepository)
             }
+    }
+
+    private val offlineLicenseRepository = object : CustomDrmSessionManager.OfflineLicenseRepository {
+        override fun saveLicenseId(psshKey: String, licenseId: ByteArray) {
+            preferencesRepository.setOfflineLicenseKeySetId(psshKey, licenseId)
+        }
+
+        override fun getLicenseId(psshKey: String): ByteArray? {
+            return preferencesRepository.getOfflineLicenseKeySetId(psshKey)
+        }
     }
 
     private val defaultDrmSessionEventListener = object : DefaultDrmSessionEventListener {

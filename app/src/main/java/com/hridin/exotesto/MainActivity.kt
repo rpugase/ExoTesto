@@ -1,8 +1,8 @@
-package com.hridin.exotesto.view
+package com.hridin.exotesto
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.hridin.exotesto.R
+import com.hridin.exotesto.view.StreamListFragment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 
@@ -19,7 +19,9 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         setContentView(R.layout.activity_main)
 
         supportFragmentManager.beginTransaction()
-            .replace(R.id.container, StreamListFragment())
+            .replace(R.id.container,
+                StreamListFragment()
+            )
             .commit()
     }
 }
