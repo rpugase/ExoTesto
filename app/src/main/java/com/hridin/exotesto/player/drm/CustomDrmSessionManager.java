@@ -21,6 +21,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
+import android.util.Base64;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
@@ -74,9 +75,11 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
 
   public interface OfflineLicenseRepository {
 
-    byte[] getLicenseId(@NonNull String psshKey);
+    byte[] getLicenseId(@NonNull byte[] psshKey);
 
-    void saveLicenseId(@NonNull String psshKey, @NonNull byte[] licenseId);
+    void saveLicenseId(@NonNull byte[] psshKey, @NonNull byte[] licenseId);
+
+    void removeLicenseId(@NonNull byte[] psshKey);
   }
 
   /**
@@ -438,6 +441,8 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
         }
       }
     }
+
+    Log.i("logger", Base64.encodeToString(schemeDatas.get(0).data, Base64.DEFAULT));
 
     if (session == null) {
       // Create a new session.

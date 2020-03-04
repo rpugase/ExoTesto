@@ -6,4 +6,4 @@ import kotlinx.serialization.Serializable
 
 @Parcelize
 @Serializable
-data class Stream(val manifestUrl: String, val channelName: String, val drmInfo: DrmInfo) : Parcelable
+data class Stream(val manifestUrl: String, val channelName: String, val drmInfo: DrmInfo? = null) : Parcelable

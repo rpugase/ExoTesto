@@ -23,7 +23,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Base64;
 import android.util.Pair;
 
 import androidx.annotation.Nullable;
@@ -88,7 +87,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
 
   private static final int MSG_PROVISION = 0;
   private static final int MSG_KEYS = 1;
-  private static final int MAX_LICENSE_DURATION_TO_RENEW = 60;
+  private static final int MAX_LICENSE_DURATION_TO_RENEW = 20;
 
   /** The DRM scheme datas, or null if this session uses offline keys. */
   public final @Nullable List<SchemeData> schemeDatas;
@@ -187,13 +186,12 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
         return;
       }
       if (openInternal(true)) {
-        if (offlineLicenseRepository != null) {
-          final String keyByPssh = Base64.encodeToString(schemeDatas.get(0).data, Base64.DEFAULT);
-          offlineLicenseKeySetId = offlineLicenseRepository.getLicenseId(keyByPssh);
+        if (offlineLicenseRepository != null && schemeDatas != null && !schemeDatas.isEmpty()) {
+          offlineLicenseKeySetId = offlineLicenseRepository.getLicenseId(schemeDatas.get(0).data);
           if (offlineLicenseKeySetId == null) {
             mode = CustomDrmSessionManager.MODE_DOWNLOAD;
             doLicense(true);
-            offlineLicenseRepository.saveLicenseId(keyByPssh, offlineLicenseKeySetId);
+            offlineLicenseRepository.saveLicenseId(schemeDatas.get(0).data, offlineLicenseKeySetId);
             mode = CustomDrmSessionManager.MODE_PLAYBACK;
           }
         }

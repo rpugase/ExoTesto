@@ -3,6 +3,7 @@ package com.hridin.exotesto.player
 import android.content.Context
 import android.media.MediaCodec
 import android.os.Handler
+import android.util.Base64
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.drm.DefaultDrmSessionEventListener
 import com.google.android.exoplayer2.drm.FrameworkMediaCrypto
@@ -12,6 +13,7 @@ import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.util.Util
 import com.hridin.exotesto.R
+import com.hridin.exotesto.data.DrmInfo
 import com.hridin.exotesto.data.DrmSystem
 import com.hridin.exotesto.getMethodName
 import com.hridin.exotesto.player.drm.CustomDrmSessionManager
@@ -39,17 +41,18 @@ class PlayerManager(private val context: Context, private val preferencesReposit
 
     private var manifestUrl: String? = null
 
-    fun initExoPlayer(playerView: PlayerView, licenseUrl: String, token: String, drmSystem: DrmSystem) {
-        val mapRequest = when (drmSystem) {
-            DrmSystem.IRDETTO -> hashMapOf("Authorization" to "Bearer $token")
-            DrmSystem.BUYDRM -> hashMapOf("customdata" to token)
-        }
+    fun initExoPlayer(playerView: PlayerView, drmInfo: DrmInfo?) {
+        exoPlayer = if (drmInfo != null) {
+            val mapRequest = when (drmInfo.drmSystem) {
+                DrmSystem.IRDETTO -> hashMapOf("Authorization" to "Bearer $${drmInfo.token}")
+                DrmSystem.BUYDRM -> hashMapOf("customdata" to drmInfo.token)
+            }
 
-        val rendersFactory = DefaultRenderersFactory(context)
-        val trackSelector = DefaultTrackSelector()
-        drmSessionManager = buildDrmSessionManager(licenseUrl, mapRequest)
-
-        exoPlayer = ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager)
+            val rendersFactory = DefaultRenderersFactory(context)
+            val trackSelector = DefaultTrackSelector()
+            drmSessionManager = buildDrmSessionManager(drmInfo.licenseUrl, mapRequest)
+            ExoPlayerFactory.newSimpleInstance(context, rendersFactory, trackSelector, drmSessionManager)
+        } else ExoPlayerFactory.newSimpleInstance(context)
         exoPlayer?.addListener(this)
         playerView.player = exoPlayer
     }
@@ -111,12 +114,16 @@ class PlayerManager(private val context: Context, private val preferencesReposit
     }
 
     private val offlineLicenseRepository = object : CustomDrmSessionManager.OfflineLicenseRepository {
-        override fun saveLicenseId(psshKey: String, licenseId: ByteArray) {
-            preferencesRepository.setOfflineLicenseKeySetId(psshKey, licenseId)
+        override fun saveLicenseId(psshKey: ByteArray, licenseId: ByteArray) {
+            preferencesRepository.setOfflineLicenseKeySetId(Base64.encodeToString(psshKey, Base64.DEFAULT), licenseId)
         }
 
-        override fun getLicenseId(psshKey: String): ByteArray? {
-            return preferencesRepository.getOfflineLicenseKeySetId(psshKey)
+        override fun getLicenseId(psshKey: ByteArray): ByteArray? {
+            return preferencesRepository.getOfflineLicenseKeySetId(Base64.encodeToString(psshKey, Base64.DEFAULT))
+        }
+
+        override fun removeLicenseId(psshKey: ByteArray) {
+            preferencesRepository.removeOfflineLicenseKeySetId(Base64.encodeToString(psshKey, Base64.DEFAULT))
         }
     }
 

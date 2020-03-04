@@ -36,9 +36,15 @@ class StreamAdapter : RecyclerView.Adapter<StreamAdapter.StreamViewHolder>() {
             with(itemView) {
                 tvName.text = stream.channelName
                 tvManifestUrl.text = stream.manifestUrl
-                tvLicenseUrl.text = stream.drmInfo.licenseUrl
-                tvDrmSystem.text = stream.drmInfo.drmSystem.toString().toLowerCase(Locale.US)
-                tvToken.text = stream.drmInfo.token
+                if (stream.drmInfo != null) {
+                    tvLicenseUrl.text = stream.drmInfo.licenseUrl
+                    tvDrmSystem.text = stream.drmInfo.drmSystem.toString().toLowerCase(Locale.US)
+                    tvToken.text = stream.drmInfo.token
+                } else {
+                    tvLicenseUrl.visibility = View.GONE
+                    tvDrmSystem.visibility = View.GONE
+                    tvToken.visibility = View.GONE
+                }
 
                 setOnClickListener { onItemClick?.invoke(stream) }
                 setOnFocusChangeListener { _, hasFocus ->

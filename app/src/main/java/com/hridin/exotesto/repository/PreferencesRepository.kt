@@ -33,10 +33,14 @@ class PreferencesRepository(context: Context) {
                 .apply()
     }
 
-    fun getOfflineLicenseKeySetId(dashManifest: String): ByteArray? {
-        val licenseBase64 = preferences.getString(dashManifest, null) ?: return null
+    fun getOfflineLicenseKeySetId(psshKey: String): ByteArray? {
+        val licenseBase64 = preferences.getString(psshKey, null) ?: return null
 
         return Base64.decode(licenseBase64, Base64.DEFAULT)
+    }
+
+    fun removeOfflineLicenseKeySetId(psshKey: String) {
+        preferences.edit().remove(psshKey).apply()
     }
 
     fun clear() {
