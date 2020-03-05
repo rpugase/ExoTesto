@@ -44,7 +44,7 @@ class PlayerManager(private val context: Context, private val preferencesReposit
     fun initExoPlayer(playerView: PlayerView, drmInfo: DrmInfo?) {
         exoPlayer = if (drmInfo != null) {
             val mapRequest = when (drmInfo.drmSystem) {
-                DrmSystem.IRDETTO -> hashMapOf("Authorization" to "Bearer $${drmInfo.token}")
+                DrmSystem.IRDETTO -> hashMapOf("Authorization" to "Bearer ${drmInfo.token}")
                 DrmSystem.BUYDRM -> hashMapOf("customdata" to drmInfo.token)
             }
 
@@ -85,7 +85,7 @@ class PlayerManager(private val context: Context, private val preferencesReposit
 
                 if (error.rendererException is MediaCodec.CryptoException) {
 //                    drmSessionManager?.forceOnlineOneTime()
-//                    TODO("Reinitialize player")
+                    TODO("Reinitialize player")
                 }
             }
             ExoPlaybackException.TYPE_SOURCE -> {

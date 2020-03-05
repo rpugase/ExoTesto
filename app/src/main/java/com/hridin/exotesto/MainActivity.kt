@@ -2,7 +2,7 @@ package com.hridin.exotesto
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.hridin.exotesto.view.StreamListFragment
+import com.hridin.exotesto.presentation.StreamListFragment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 
@@ -23,5 +23,9 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                 StreamListFragment()
             )
             .commit()
+
+//        Intent.ACTION_PACKAGE_RESTARTED
+
+        
     }
 }

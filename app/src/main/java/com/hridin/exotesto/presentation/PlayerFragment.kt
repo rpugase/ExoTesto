@@ -1,4 +1,4 @@
-package com.hridin.exotesto.view
+package com.hridin.exotesto.presentation
 
 import android.os.Bundle
 import android.view.LayoutInflater
