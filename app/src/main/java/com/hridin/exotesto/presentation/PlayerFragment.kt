@@ -32,8 +32,8 @@ class PlayerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val stream = arguments!!.getParcelable<Stream>(ARG_STREAM)!!
 
-        mPlayer.initExoPlayer(viewPlayer, stream.drmInfo)
-        mPlayer.play(stream.manifestUrl)
+        mPlayer.initExoPlayer(viewPlayer)
+        mPlayer.play(stream.manifestUrl, stream.drmInfo)
     }
 
     override fun onDestroy() {

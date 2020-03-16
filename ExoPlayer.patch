@@ -1,0 +1,454 @@
+diff --git a/core_settings.gradle b/core_settings.gradle
+index 0f9746af9..b0a0c2ef6 100644
+--- a/core_settings.gradle
++++ b/core_settings.gradle
+@@ -17,48 +17,48 @@ if (gradle.ext.has('exoplayerModulePrefix')) {
+     modulePrefix += gradle.ext.exoplayerModulePrefix
+ }
+ 
+-include modulePrefix + 'library'
+ include modulePrefix + 'library-core'
+ include modulePrefix + 'library-dash'
+ include modulePrefix + 'library-hls'
+-include modulePrefix + 'library-smoothstreaming'
+ include modulePrefix + 'library-ui'
+-include modulePrefix + 'testutils'
+-include modulePrefix + 'extension-av1'
+-include modulePrefix + 'extension-ffmpeg'
+-include modulePrefix + 'extension-flac'
+-include modulePrefix + 'extension-gvr'
+-include modulePrefix + 'extension-ima'
+-include modulePrefix + 'extension-cast'
+-include modulePrefix + 'extension-cronet'
+-include modulePrefix + 'extension-mediasession'
+ include modulePrefix + 'extension-okhttp'
+-include modulePrefix + 'extension-opus'
+-include modulePrefix + 'extension-vp9'
+-include modulePrefix + 'extension-rtmp'
+-include modulePrefix + 'extension-leanback'
+-include modulePrefix + 'extension-jobdispatcher'
+-include modulePrefix + 'extension-workmanager'
++include modulePrefix + 'testutils'
++//include modulePrefix + 'library'
++//include modulePrefix + 'library-smoothstreaming'
++//include modulePrefix + 'extension-av1'
++//include modulePrefix + 'extension-ffmpeg'
++//include modulePrefix + 'extension-flac'
++//include modulePrefix + 'extension-gvr'
++//include modulePrefix + 'extension-ima'
++//include modulePrefix + 'extension-cast'
++//include modulePrefix + 'extension-cronet'
++//include modulePrefix + 'extension-mediasession'
++//include modulePrefix + 'extension-opus'
++//include modulePrefix + 'extension-vp9'
++//include modulePrefix + 'extension-rtmp'
++//include modulePrefix + 'extension-leanback'
++//include modulePrefix + 'extension-jobdispatcher'
++//include modulePrefix + 'extension-workmanager'
+ 
+-project(modulePrefix + 'library').projectDir = new File(rootDir, 'library/all')
+ project(modulePrefix + 'library-core').projectDir = new File(rootDir, 'library/core')
+ project(modulePrefix + 'library-dash').projectDir = new File(rootDir, 'library/dash')
+ project(modulePrefix + 'library-hls').projectDir = new File(rootDir, 'library/hls')
+-project(modulePrefix + 'library-smoothstreaming').projectDir = new File(rootDir, 'library/smoothstreaming')
+ project(modulePrefix + 'library-ui').projectDir = new File(rootDir, 'library/ui')
+-project(modulePrefix + 'testutils').projectDir = new File(rootDir, 'testutils')
+-project(modulePrefix + 'extension-av1').projectDir = new File(rootDir, 'extensions/av1')
+-project(modulePrefix + 'extension-ffmpeg').projectDir = new File(rootDir, 'extensions/ffmpeg')
+-project(modulePrefix + 'extension-flac').projectDir = new File(rootDir, 'extensions/flac')
+-project(modulePrefix + 'extension-gvr').projectDir = new File(rootDir, 'extensions/gvr')
+-project(modulePrefix + 'extension-ima').projectDir = new File(rootDir, 'extensions/ima')
+-project(modulePrefix + 'extension-cast').projectDir = new File(rootDir, 'extensions/cast')
+-project(modulePrefix + 'extension-cronet').projectDir = new File(rootDir, 'extensions/cronet')
+-project(modulePrefix + 'extension-mediasession').projectDir = new File(rootDir, 'extensions/mediasession')
+ project(modulePrefix + 'extension-okhttp').projectDir = new File(rootDir, 'extensions/okhttp')
+-project(modulePrefix + 'extension-opus').projectDir = new File(rootDir, 'extensions/opus')
+-project(modulePrefix + 'extension-vp9').projectDir = new File(rootDir, 'extensions/vp9')
+-project(modulePrefix + 'extension-rtmp').projectDir = new File(rootDir, 'extensions/rtmp')
+-project(modulePrefix + 'extension-leanback').projectDir = new File(rootDir, 'extensions/leanback')
+-project(modulePrefix + 'extension-jobdispatcher').projectDir = new File(rootDir, 'extensions/jobdispatcher')
+-project(modulePrefix + 'extension-workmanager').projectDir = new File(rootDir, 'extensions/workmanager')
++project(modulePrefix + 'testutils').projectDir = new File(rootDir, 'testutils')
++//project(modulePrefix + 'library').projectDir = new File(rootDir, 'library/all')
++//project(modulePrefix + 'library-smoothstreaming').projectDir = new File(rootDir, 'library/smoothstreaming')
++//project(modulePrefix + 'extension-av1').projectDir = new File(rootDir, 'extensions/av1')
++//project(modulePrefix + 'extension-ffmpeg').projectDir = new File(rootDir, 'extensions/ffmpeg')
++//project(modulePrefix + 'extension-flac').projectDir = new File(rootDir, 'extensions/flac')
++//project(modulePrefix + 'extension-gvr').projectDir = new File(rootDir, 'extensions/gvr')
++//project(modulePrefix + 'extension-ima').projectDir = new File(rootDir, 'extensions/ima')
++//project(modulePrefix + 'extension-cast').projectDir = new File(rootDir, 'extensions/cast')
++//project(modulePrefix + 'extension-cronet').projectDir = new File(rootDir, 'extensions/cronet')
++//project(modulePrefix + 'extension-mediasession').projectDir = new File(rootDir, 'extensions/mediasession')
++//project(modulePrefix + 'extension-opus').projectDir = new File(rootDir, 'extensions/opus')
++//project(modulePrefix + 'extension-vp9').projectDir = new File(rootDir, 'extensions/vp9')
++//project(modulePrefix + 'extension-rtmp').projectDir = new File(rootDir, 'extensions/rtmp')
++//project(modulePrefix + 'extension-leanback').projectDir = new File(rootDir, 'extensions/leanback')
++//project(modulePrefix + 'extension-jobdispatcher').projectDir = new File(rootDir, 'extensions/jobdispatcher')
++//project(modulePrefix + 'extension-workmanager').projectDir = new File(rootDir, 'extensions/workmanager')
+diff --git a/library/core/src/main/java/com/google/android/exoplayer2/drm/DefaultDrmSession.java b/library/core/src/main/java/com/google/android/exoplayer2/drm/DefaultDrmSession.java
+index 432cc6613..eefe1e493 100644
+--- a/library/core/src/main/java/com/google/android/exoplayer2/drm/DefaultDrmSession.java
++++ b/library/core/src/main/java/com/google/android/exoplayer2/drm/DefaultDrmSession.java
+@@ -18,12 +18,15 @@ package com.google.android.exoplayer2.drm;
+ import android.annotation.SuppressLint;
+ import android.annotation.TargetApi;
+ import android.media.NotProvisionedException;
++import android.os.ConditionVariable;
+ import android.os.Handler;
+ import android.os.HandlerThread;
+ import android.os.Looper;
+ import android.os.Message;
+ import android.os.SystemClock;
+ import android.util.Pair;
++
++import androidx.annotation.NonNull;
+ import androidx.annotation.Nullable;
+ import com.google.android.exoplayer2.C;
+ import com.google.android.exoplayer2.drm.DrmInitData.SchemeData;
+@@ -47,7 +50,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+ 
+ /** A {@link DrmSession} that supports playbacks using {@link ExoMediaDrm}. */
+ @TargetApi(18)
+-/* package */ class DefaultDrmSession<T extends ExoMediaCrypto> implements DrmSession<T> {
++public class DefaultDrmSession<T extends ExoMediaCrypto> implements DrmSession<T> {
+ 
+   /** Thrown when an unexpected exception or error is thrown during provisioning or key requests. */
+   public static final class UnexpectedDrmSessionException extends IOException {
+@@ -96,7 +99,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+ 
+   private static final int MSG_PROVISION = 0;
+   private static final int MSG_KEYS = 1;
+-  private static final int MAX_LICENSE_DURATION_TO_RENEW_SECONDS = 60;
++  private static final int MAX_LICENSE_DURATION_TO_RENEW_SECONDS = 0;
+ 
+   /** The DRM scheme datas, or null if this session uses offline keys. */
+   @Nullable public final List<SchemeData> schemeDatas;
+@@ -104,7 +107,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+   private final ExoMediaDrm<T> mediaDrm;
+   private final ProvisioningManager<T> provisioningManager;
+   private final ReleaseCallback<T> releaseCallback;
+-  private final @DefaultDrmSessionManager.Mode int mode;
++  private @DefaultDrmSessionManager.Mode int mode;
+   private final boolean playClearSamplesWithoutKeys;
+   private final boolean isPlaceholderSession;
+   private final HashMap<String, String> keyRequestParameters;
+@@ -113,7 +116,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+ 
+   /* package */ final MediaDrmCallback callback;
+   /* package */ final UUID uuid;
+-  /* package */ final ResponseHandler responseHandler;
++  /* package */ ResponseHandler responseHandler;
+ 
+   private @DrmSession.State int state;
+   private int referenceCount;
+@@ -126,6 +129,12 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+ 
+   @Nullable private KeyRequest currentKeyRequest;
+   @Nullable private ProvisionRequest currentProvisionRequest;
++  private OfflineLicenseRepository offlineLicenseRepository;
++  private ConditionVariable conditionVariable = new ConditionVariable();
++
++  public void setOfflineLicenseRepository(OfflineLicenseRepository offlineLicenseRepository) {
++    this.offlineLicenseRepository = offlineLicenseRepository;
++  }
+ 
+   /**
+    * Instantiates a new DRM session.
+@@ -186,7 +195,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+     this.eventDispatcher = eventDispatcher;
+     this.loadErrorHandlingPolicy = loadErrorHandlingPolicy;
+     state = STATE_OPENING;
+-    responseHandler = new ResponseHandler(playbackLooper);
++//    responseHandler = new ResponseHandler(playbackLooper);
+   }
+ 
+   public boolean hasSessionId(byte[] sessionId) {
+@@ -267,12 +276,32 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+       requestHandlerThread = new HandlerThread("DrmRequestHandler");
+       requestHandlerThread.start();
+       requestHandler = new RequestHandler(requestHandlerThread.getLooper());
++      responseHandler = new ResponseHandler(requestHandlerThread.getLooper());
+       if (openInternal(true)) {
++        final long licenseDuration = getLicenseDurationRemainingSec();
++        if (licenseDuration <= 20)
++          offlineLicenseRepository.removeLicenseId(schemeDatas.get(0).data);
++
++        if (offlineLicenseRepository != null && schemeDatas != null && !schemeDatas.isEmpty() && mode == DefaultDrmSessionManager.MODE_PLAYBACK) {
++          offlineLicenseKeySetId = offlineLicenseRepository.getLicenseId(schemeDatas.get(0).data);
++          if (offlineLicenseKeySetId == null) {
++//            loadNewLicense();
++          }
++        }
+         doLicense(true);
+       }
+     }
+   }
+ 
++  public void loadNewLicense() {
++    mode = DefaultDrmSessionManager.MODE_DOWNLOAD;
++    doLicense(false);
++    if (offlineLicenseKeySetId != null) {
++      offlineLicenseRepository.saveLicenseId(schemeDatas.get(0).data, offlineLicenseKeySetId);
++    }
++    mode = DefaultDrmSessionManager.MODE_PLAYBACK;
++  }
++
+   @Override
+   public void release() {
+     if (--referenceCount == 0) {
+@@ -291,11 +320,22 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+         mediaDrm.closeSession(sessionId);
+         sessionId = null;
+         eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmSessionReleased);
++        conditionVariable.open();
+       }
+       releaseCallback.onSessionReleased(this);
+     }
+   }
+ 
++  public interface OfflineLicenseRepository {
++
++    @Nullable
++    byte[] getLicenseId(@NonNull byte[] psshKey);
++
++    void saveLicenseId(@NonNull byte[] psshKey, @NonNull byte[] licenseId);
++
++    void removeLicenseId(@NonNull byte[] psshKey);
++  }
++
+   // Internal methods.
+ 
+   /**
+@@ -316,6 +356,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+       sessionId = mediaDrm.openSession();
+       mediaCrypto = mediaDrm.createMediaCrypto(sessionId);
+       eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmSessionAcquired);
++      conditionVariable.open();
+       state = STATE_OPENED;
+       Assertions.checkNotNull(sessionId);
+       return true;
+@@ -380,6 +421,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+           } else {
+             state = STATE_OPENED_WITH_KEYS;
+             eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmKeysRestored);
++            conditionVariable.open();
+           }
+         }
+         break;
+@@ -426,8 +468,10 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+   private void postKeyRequest(byte[] scope, int type, boolean allowRetry) {
+     try {
+       currentKeyRequest = mediaDrm.getKeyRequest(scope, schemeDatas, type, keyRequestParameters);
++//      conditionVariable.close();
+       Util.castNonNull(requestHandler)
+           .post(MSG_KEYS, Assertions.checkNotNull(currentKeyRequest), allowRetry);
++//      conditionVariable.block();
+     } catch (Exception e) {
+       onKeysError(e);
+     }
+@@ -450,6 +494,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+       if (mode == DefaultDrmSessionManager.MODE_RELEASE) {
+         mediaDrm.provideKeyResponse(Util.castNonNull(offlineLicenseKeySetId), responseData);
+         eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmKeysRestored);
++        conditionVariable.open();
+       } else {
+         byte[] keySetId = mediaDrm.provideKeyResponse(sessionId, responseData);
+         if ((mode == DefaultDrmSessionManager.MODE_DOWNLOAD
+@@ -461,6 +506,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+         }
+         state = STATE_OPENED_WITH_KEYS;
+         eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmKeysLoaded);
++        conditionVariable.open();
+       }
+     } catch (Exception e) {
+       onKeysError(e);
+@@ -485,6 +531,7 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+   private void onError(final Exception e) {
+     lastException = new DrmSessionException(e);
+     eventDispatcher.dispatch(listener -> listener.onDrmSessionManagerError(e));
++    conditionVariable.open();
+     if (state != STATE_OPENED_WITH_KEYS) {
+       state = STATE_ERROR;
+     }
+diff --git a/library/core/src/main/java/com/google/android/exoplayer2/drm/DefaultDrmSessionManager.java b/library/core/src/main/java/com/google/android/exoplayer2/drm/DefaultDrmSessionManager.java
+index 1c27d745d..54183550c 100644
+--- a/library/core/src/main/java/com/google/android/exoplayer2/drm/DefaultDrmSessionManager.java
++++ b/library/core/src/main/java/com/google/android/exoplayer2/drm/DefaultDrmSessionManager.java
+@@ -257,6 +257,7 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
+   @Nullable private byte[] offlineLicenseKeySetId;
+ 
+   /* package */ volatile @Nullable MediaDrmHandler mediaDrmHandler;
++  private DefaultDrmSession.OfflineLicenseRepository offlineLicenseRepository;
+ 
+   /**
+    * @param uuid The UUID of the drm scheme.
+@@ -367,6 +368,10 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
+     provisioningSessions = new ArrayList<>();
+   }
+ 
++  public void setOfflineLicenseRepository(DefaultDrmSession.OfflineLicenseRepository offlineLicenseRepository) {
++    this.offlineLicenseRepository = offlineLicenseRepository;
++  }
++
+   /**
+    * Adds a {@link DefaultDrmSessionEventListener} to listen to drm session events.
+    *
+@@ -517,12 +522,12 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
+     } else {
+       // Only use an existing session if it has matching init data.
+       session = null;
+-      for (DefaultDrmSession<T> existingSession : sessions) {
+-        if (Util.areEqual(existingSession.schemeDatas, schemeDatas)) {
+-          session = existingSession;
+-          break;
+-        }
+-      }
++//      for (DefaultDrmSession<T> existingSession : sessions) {
++//        if (Util.areEqual(existingSession.schemeDatas, schemeDatas)) {
++//          session = existingSession;
++//          break;
++//        }
++//      }
+     }
+ 
+     if (session == null) {
+@@ -533,7 +538,12 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
+       }
+       sessions.add(session);
+     }
++    session.setOfflineLicenseRepository(offlineLicenseRepository);
++    long before = System.currentTimeMillis();
+     session.acquire();
++    long after = System.currentTimeMillis();
++
++    Log.i("logger", "acqure=" + (after - before));
+     return session;
+   }
+ 
+diff --git a/library/core/src/main/java/com/google/android/exoplayer2/mediacodec/MediaCodecRenderer.java b/library/core/src/main/java/com/google/android/exoplayer2/mediacodec/MediaCodecRenderer.java
+index 4830b7876..ddab71588 100644
+--- a/library/core/src/main/java/com/google/android/exoplayer2/mediacodec/MediaCodecRenderer.java
++++ b/library/core/src/main/java/com/google/android/exoplayer2/mediacodec/MediaCodecRenderer.java
+@@ -1539,6 +1539,7 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
+       } else if (outputBufferInfo.size == 0
+           && (outputBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+         // The dequeued buffer indicates the end of the stream. Process it immediately.
++        Log.i("logger", inputFormat.sampleMimeType);
+         processEndOfStream();
+         return false;
+       }
+diff --git a/library/core/src/main/java/com/google/android/exoplayer2/source/SampleQueue.java b/library/core/src/main/java/com/google/android/exoplayer2/source/SampleQueue.java
+index d4e447bc6..25cbd429e 100644
+--- a/library/core/src/main/java/com/google/android/exoplayer2/source/SampleQueue.java
++++ b/library/core/src/main/java/com/google/android/exoplayer2/source/SampleQueue.java
+@@ -16,6 +16,10 @@
+ package com.google.android.exoplayer2.source;
+ 
+ import android.os.Looper;
++import android.util.Base64;
++import android.util.Log;
++import android.util.Pair;
++
+ import androidx.annotation.CallSuper;
+ import androidx.annotation.Nullable;
+ import androidx.annotation.VisibleForTesting;
+@@ -26,6 +30,7 @@ import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
+ import com.google.android.exoplayer2.drm.DrmInitData;
+ import com.google.android.exoplayer2.drm.DrmSession;
+ import com.google.android.exoplayer2.drm.DrmSessionManager;
++import com.google.android.exoplayer2.drm.WidevineUtil;
+ import com.google.android.exoplayer2.extractor.ExtractorInput;
+ import com.google.android.exoplayer2.extractor.TrackOutput;
+ import com.google.android.exoplayer2.upstream.Allocator;
+@@ -531,6 +536,13 @@ public class SampleQueue implements TrackOutput {
+     sampleDataQueue.rewind();
+   }
+ 
++  private boolean needUpdateFormat = false;
++  private boolean bufferedChunk = false;
++
++  public synchronized void updateFormatIfNeeded() {
++    bufferedChunk = needUpdateFormat;
++  }
++
+   @SuppressWarnings("ReferenceEquality") // See comments in setUpstreamFormat
+   private synchronized int readSampleMetadata(
+       FormatHolder formatHolder,
+@@ -555,11 +567,33 @@ public class SampleQueue implements TrackOutput {
+       }
+     }
+ 
++    if (currentDrmSession != null) {
++      final Pair<Long, Long> pair = WidevineUtil.getLicenseDurationRemainingSec(currentDrmSession);
++      if (pair != null) {
++        final long licenseDuration = Math.min(pair.first, pair.second);
++
++        if (licenseDuration == 20 || licenseDuration == 0) {
++//          Log.i("logger", downstreamFormat.sampleMimeType);
++          downstreamFormat = downstreamFormat.copyWithBitrate(downstreamFormat.bitrate);
++//          bufferedChunk = true;
++//          needUpdateFormat = true;
++//          formatRequired = true;
++        }
++      }
++    }
++
++//    if (bufferedChunk) {
++//      bufferedChunk = false;
++////      needUpdateFormat = false;
++//      formatRequired = true;
++//    }
++
+     if (!hasNextSample) {
+       if (loadingFinished || isLastSampleQueued) {
+         buffer.setFlags(C.BUFFER_FLAG_END_OF_STREAM);
+         return C.RESULT_BUFFER_READ;
+       } else if (upstreamFormat != null && (formatRequired || upstreamFormat != downstreamFormat)) {
++        Log.i("logger", "onFormatResult=1");
+         onFormatResult(Assertions.checkNotNull(upstreamFormat), formatHolder);
+         return C.RESULT_FORMAT_READ;
+       } else {
+@@ -568,6 +602,7 @@ public class SampleQueue implements TrackOutput {
+     }
+ 
+     if (formatRequired || formats[relativeReadIndex] != downstreamFormat) {
++      Log.i("logger", "onFormatResult=2");
+       onFormatResult(formats[relativeReadIndex], formatHolder);
+       return C.RESULT_FORMAT_READ;
+     }
+@@ -760,6 +795,8 @@ public class SampleQueue implements TrackOutput {
+     return readPosition != length;
+   }
+ 
++
++  boolean first = true;
+   /**
+    * Sets the downstream format, performs DRM resource management, and populates the {@code
+    * outputFormatHolder}.
+@@ -782,10 +819,10 @@ public class SampleQueue implements TrackOutput {
+     DrmInitData newDrmInitData = newFormat.drmInitData;
+     outputFormatHolder.includesDrmSession = true;
+     outputFormatHolder.drmSession = currentDrmSession;
+-    if (!isFirstFormat && Util.areEqual(oldDrmInitData, newDrmInitData)) {
+-      // Nothing to do.
+-      return;
+-    }
++//    if (!isFirstFormat && oldDrmInitData == newDrmInitData) {
++//      // Nothing to do.
++//      return;
++//    }
+     // Ensure we acquire the new session before releasing the previous one in case the same session
+     // is being used for both DrmInitData.
+     DrmSession<?> previousSession = currentDrmSession;
+diff --git a/library/core/src/main/java/com/google/android/exoplayer2/source/chunk/ChunkSampleStream.java b/library/core/src/main/java/com/google/android/exoplayer2/source/chunk/ChunkSampleStream.java
+index db555b136..6ca612dec 100644
+--- a/library/core/src/main/java/com/google/android/exoplayer2/source/chunk/ChunkSampleStream.java
++++ b/library/core/src/main/java/com/google/android/exoplayer2/source/chunk/ChunkSampleStream.java
+@@ -392,6 +392,7 @@ public class ChunkSampleStream<T extends ChunkSource> implements SampleStream, S
+ 
+   @Override
+   public void onLoadCompleted(Chunk loadable, long elapsedRealtimeMs, long loadDurationMs) {
++    Log.i("logger", "======>CHUNK LOAD COMPLETED<=========");
+     chunkSource.onChunkLoadCompleted(loadable);
+     eventDispatcher.loadCompleted(
+         loadable.dataSpec,

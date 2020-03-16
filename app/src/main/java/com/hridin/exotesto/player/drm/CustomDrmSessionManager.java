@@ -378,6 +378,16 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
   // DrmSessionManager implementation.
 
   @Override
+  public void prepare() {
+
+  }
+
+  @Override
+  public void release() {
+
+  }
+
+  @Override
   public boolean canAcquireSession(DrmInitData drmInitData) {
     if (offlineLicenseKeySetId != null) {
       // An offline license can be restored so a session can always be acquired.
@@ -406,6 +416,12 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
     }
     // Unknown schemes, assume one of them is supported.
     return true;
+  }
+
+  @Nullable
+  @Override
+  public DrmSession<T> acquirePlaceholderSession(Looper playbackLooper, int trackType) {
+    return null;
   }
 
   @Override
@@ -468,24 +484,12 @@ public class CustomDrmSessionManager<T extends ExoMediaCrypto> implements DrmSes
     return session;
   }
 
+  @Nullable
   @Override
-  public void releaseSession(DrmSession<T> session) {
-    if (session instanceof ErrorStateDrmSession) {
-      // Do nothing.
-      return;
-    }
-
-    CustomDrmSession<T> drmSession = (CustomDrmSession<T>) session;
-    if (drmSession.release()) {
-      sessions.remove(drmSession);
-      if (provisioningSessions.size() > 1 && provisioningSessions.get(0) == drmSession) {
-        // Other sessions were waiting for the released session to complete a provision operation.
-        // We need to have one of those sessions perform the provision operation instead.
-        provisioningSessions.get(1).provision();
-      }
-      provisioningSessions.remove(drmSession);
-    }
+  public Class<? extends ExoMediaCrypto> getExoMediaCryptoType(DrmInitData drmInitData) {
+    return null;
   }
+
 
   // ProvisioningManager implementation.
 

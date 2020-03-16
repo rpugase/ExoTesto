@@ -87,7 +87,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
 
   private static final int MSG_PROVISION = 0;
   private static final int MSG_KEYS = 1;
-  private static final int MAX_LICENSE_DURATION_TO_RENEW = 20;
+  private static final int MAX_LICENSE_DURATION_TO_RENEW = 0;
 
   /** The DRM scheme datas, or null if this session uses offline keys. */
   public final @Nullable List<SchemeData> schemeDatas;
@@ -189,10 +189,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
         if (offlineLicenseRepository != null && schemeDatas != null && !schemeDatas.isEmpty()) {
           offlineLicenseKeySetId = offlineLicenseRepository.getLicenseId(schemeDatas.get(0).data);
           if (offlineLicenseKeySetId == null) {
-            mode = CustomDrmSessionManager.MODE_DOWNLOAD;
-            doLicense(true);
-            offlineLicenseRepository.saveLicenseId(schemeDatas.get(0).data, offlineLicenseKeySetId);
-            mode = CustomDrmSessionManager.MODE_PLAYBACK;
+            loadNewLicense();
           }
         }
         doLicense(true);
@@ -200,10 +197,17 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
     }
   }
 
+  public void loadNewLicense() {
+    mode = CustomDrmSessionManager.MODE_DOWNLOAD;
+    doLicense(true);
+    offlineLicenseRepository.saveLicenseId(schemeDatas.get(0).data, offlineLicenseKeySetId);
+    mode = CustomDrmSessionManager.MODE_PLAYBACK;
+  }
+
   /** @return True if the session is closed and cleaned up, false otherwise. */
   // Assigning null to various non-null variables for clean-up. Class won't be used after release.
   @SuppressWarnings("assignment.type.incompatible")
-  public boolean release() {
+  public void release() {
     if (--openCount == 0) {
       state = STATE_RELEASED;
       postResponseHandler.removeCallbacksAndMessages(null);
@@ -221,9 +225,7 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
         eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmSessionReleased);
         conditionVariable.open();
       }
-      return true;
     }
-    return false;
   }
 
   public boolean hasSessionId(byte[] sessionId) {
@@ -354,6 +356,12 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
               && licenseDurationRemainingSec <= MAX_LICENSE_DURATION_TO_RENEW) {
             Log.d(TAG, "Offline license has expired or will expire soon. "
                 + "Remaining seconds: " + licenseDurationRemainingSec);
+
+            if (offlineLicenseKeySetId != null) {
+              postKeyRequest(offlineLicenseKeySetId, ExoMediaDrm.KEY_TYPE_RELEASE, allowRetry);
+              offlineLicenseKeySetId = null;
+              offlineLicenseRepository.removeLicenseId(schemeDatas.get(0).data);
+            }
             postKeyRequest(sessionId, ExoMediaDrm.KEY_TYPE_OFFLINE, allowRetry);
           } else if (licenseDurationRemainingSec <= 0) {
             onError(new KeysExpiredException());
@@ -362,6 +370,10 @@ public class CustomDrmSession<T extends ExoMediaCrypto> implements DrmSession<T>
             eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmKeysRestored);
             conditionVariable.open();
           }
+        } else {
+          offlineLicenseKeySetId = null;
+          offlineLicenseRepository.removeLicenseId(schemeDatas.get(0).data);
+          postKeyRequest(sessionId, ExoMediaDrm.KEY_TYPE_OFFLINE, allowRetry);
         }
         break;
       case DefaultDrmSessionManager.MODE_DOWNLOAD:
