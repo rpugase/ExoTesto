@@ -20,6 +20,7 @@ import android.media.MediaDrm;
 import android.os.ConditionVariable;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.text.format.DateUtils;
 import android.util.Pair;
 
 import androidx.annotation.Nullable;
@@ -33,6 +34,7 @@ import com.google.android.exoplayer2.upstream.HttpDataSource.Factory;
 import com.google.android.exoplayer2.util.Assertions;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -237,6 +239,10 @@ public final class OfflineLicenseHelper<T extends ExoMediaCrypto> {
    */
   public void release() {
     handlerThread.quit();
+  }
+
+  public void setOfflineLicenseRepository(DefaultDrmSession.OfflineLicenseRepository offlineLicenseRepository) {
+    drmSessionManager.setOfflineLicenseRepository(offlineLicenseRepository);
   }
 
   private byte[] blockingKeyRequest(

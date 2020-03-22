@@ -47,6 +47,8 @@ public final class C {
 
   private C() {}
 
+  public static final int TIME_LICENSE_UPDATE = 10;
+
   /**
    * Special constant representing a time corresponding to the end of a source. Suitable for use in
    * any time base.

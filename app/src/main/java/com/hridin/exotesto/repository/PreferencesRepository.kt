@@ -26,17 +26,23 @@ class PreferencesRepository(context: Context) {
         }
 
 
-    fun setOfflineLicenseKeySetId(psshKey: String, license: ByteArray?) {
+    fun setOfflineLicenseKeySetId(psshKey: String, license: String?) {
         if (license != null)
             preferences.edit()
-                .putString(psshKey, Base64.encodeToString(license, Base64.DEFAULT))
+                .putString(psshKey, license)
                 .apply()
     }
 
-    fun getOfflineLicenseKeySetId(psshKey: String): ByteArray? {
-        val licenseBase64 = preferences.getString(psshKey, null) ?: return null
+    fun getOfflineLicenseKeySetId(psshKey: String): String? {
+        val licenseBase64 = preferences.getString(psshKey, null)?.split("::")?.get(0) ?: return null
 
-        return Base64.decode(licenseBase64, Base64.DEFAULT)
+        return licenseBase64
+    }
+
+    fun getLicenseDurationRemainingSec(psshKey: String): Long? {
+        val licenseDurationRemainingSec = preferences.getString(psshKey, null)?.split("::")?.get(1)?.toLong() ?: return null
+
+        return licenseDurationRemainingSec
     }
 
     fun removeOfflineLicenseKeySetId(psshKey: String) {

@@ -18,10 +18,10 @@ android {
     }
     signingConfigs {
         mag425a {
-            storeFile file(System.getenv("INFOMIR_KEYSTORE"))
-            storePassword System.getenv("INFOMIR_KEYSTORE_PASS")
-            keyPassword System.getenv("MAG425_KEY_PASS")
-            keyAlias System.getenv("MAG425_KEY_ALIAS")
+//            storeFile file(System.getenv("INFOMIR_KEYSTORE"))
+//            storePassword System.getenv("INFOMIR_KEYSTORE_PASS")
+//            keyPassword System.getenv("MAG425_KEY_PASS")
+//            keyAlias System.getenv("MAG425_KEY_ALIAS")
         }
     }
     buildTypes {

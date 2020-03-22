@@ -16,18 +16,23 @@
 package com.google.android.exoplayer2.source;
 
 import android.os.Looper;
+import android.util.Base64;
+import android.util.Log;
+import android.util.Pair;
 
 import androidx.annotation.CallSuper;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
-
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.FormatHolder;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
+import com.google.android.exoplayer2.drm.DefaultDrmSession;
+import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
 import com.google.android.exoplayer2.drm.DrmInitData;
 import com.google.android.exoplayer2.drm.DrmSession;
 import com.google.android.exoplayer2.drm.DrmSessionManager;
+import com.google.android.exoplayer2.drm.WidevineUtil;
 import com.google.android.exoplayer2.extractor.ExtractorInput;
 import com.google.android.exoplayer2.extractor.TrackOutput;
 import com.google.android.exoplayer2.upstream.Allocator;
@@ -35,7 +40,6 @@ import com.google.android.exoplayer2.util.Assertions;
 import com.google.android.exoplayer2.util.MimeTypes;
 import com.google.android.exoplayer2.util.ParsableByteArray;
 import com.google.android.exoplayer2.util.Util;
-
 import java.io.IOException;
 
 /** A queue of media samples. */
@@ -534,6 +538,9 @@ public class SampleQueue implements TrackOutput {
     sampleDataQueue.rewind();
   }
 
+  private boolean needUpdateFormat = false;
+  private boolean licenseDownloadRunned = false;
+
   @SuppressWarnings("ReferenceEquality") // See comments in setUpstreamFormat
   private synchronized int readSampleMetadata(
       FormatHolder formatHolder,
@@ -547,6 +554,7 @@ public class SampleQueue implements TrackOutput {
     // TODO: Remove it and replace it with a fix that discards samples when writing to the queue.
     boolean hasNextSample;
     int relativeReadIndex = C.INDEX_UNSET;
+
     while ((hasNextSample = hasNextSample())) {
       relativeReadIndex = getRelativeIndex(readPosition);
       long timeUs = timesUs[relativeReadIndex];
@@ -556,6 +564,31 @@ public class SampleQueue implements TrackOutput {
       } else {
         break;
       }
+    }
+
+    if (currentDrmSession != null) {
+      final Pair<Long, Long> licensePlaybackDurationPair = WidevineUtil.getLicenseDurationRemainingSec(currentDrmSession);
+      if (licensePlaybackDurationPair != null) {
+        final long licenseDuration = licensePlaybackDurationPair.first;
+
+        if (!licenseDownloadRunned && licenseDuration > C.TIME_LICENSE_UPDATE && licenseDuration <= (C.TIME_LICENSE_UPDATE + 10)) {
+          if (drmSessionManager instanceof DefaultDrmSessionManager) {
+            ((DefaultDrmSessionManager) drmSessionManager).justDownload(formats[relativeReadIndex].drmInitData);
+            licenseDownloadRunned = true;
+          }
+        }
+
+        if (licenseDuration == C.TIME_LICENSE_UPDATE || licenseDuration == 0) {
+          if (MimeTypes.isVideo(formats[relativeReadIndex].sampleMimeType)) needUpdateFormat = true;
+          else downstreamFormat = downstreamFormat.copyWithBitrate(downstreamFormat.bitrate);
+        }
+      }
+    }
+
+    if (needUpdateFormat && (relativeReadIndex >= flags.length || (flags[relativeReadIndex] & C.BUFFER_FLAG_KEY_FRAME) != 0)) {
+      needUpdateFormat = false;
+      licenseDownloadRunned = false;
+      downstreamFormat = downstreamFormat.copyWithBitrate(downstreamFormat.bitrate);
     }
 
     if (!hasNextSample) {
@@ -763,6 +796,8 @@ public class SampleQueue implements TrackOutput {
     return readPosition != length;
   }
 
+
+  boolean first = true;
   /**
    * Sets the downstream format, performs DRM resource management, and populates the {@code
    * outputFormatHolder}.
@@ -785,10 +820,10 @@ public class SampleQueue implements TrackOutput {
     DrmInitData newDrmInitData = newFormat.drmInitData;
     outputFormatHolder.includesDrmSession = true;
     outputFormatHolder.drmSession = currentDrmSession;
-    if (!isFirstFormat && Util.areEqual(oldDrmInitData, newDrmInitData)) {
-      // Nothing to do.
-      return;
-    }
+//    if (!isFirstFormat && oldDrmInitData == newDrmInitData) {
+//      // Nothing to do.
+//      return;
+//    }
     // Ensure we acquire the new session before releasing the previous one in case the same session
     // is being used for both DrmInitData.
     DrmSession<?> previousSession = currentDrmSession;

@@ -15,8 +15,10 @@ import com.google.android.exoplayer2.util.Util
 import com.hridin.exotesto.R
 import com.hridin.exotesto.data.DrmInfo
 import com.hridin.exotesto.data.DrmSystem
+import com.hridin.exotesto.fromBase64
 import com.hridin.exotesto.getMethodName
 import com.hridin.exotesto.repository.PreferencesRepository
+import com.hridin.exotesto.toBase64
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import timber.log.Timber
@@ -121,16 +123,18 @@ class PlayerManager(private val context: Context, private val preferencesReposit
     }
 
     private val offlineLicenseRepository = object : DefaultDrmSession.OfflineLicenseRepository {
-        override fun saveLicenseId(psshKey: ByteArray, licenseId: ByteArray) {
-            preferencesRepository.setOfflineLicenseKeySetId(Base64.encodeToString(psshKey, Base64.DEFAULT), licenseId)
+        override fun saveLicenseId(psshKey: ByteArray, licenseId: ByteArray, licenseDurationRemainingSec: Long) {
+            preferencesRepository.setOfflineLicenseKeySetId(psshKey.toBase64(),
+                licenseId.toBase64() + "::" + licenseDurationRemainingSec)
+        }
+
+        override fun getLicenseDurationRemainingSec(psshKey: ByteArray): Long {
+            return preferencesRepository.getLicenseDurationRemainingSec(psshKey.toBase64()) ?: 0L
         }
 
         override fun getLicenseId(psshKey: ByteArray): ByteArray? {
-            return preferencesRepository.getOfflineLicenseKeySetId(Base64.encodeToString(psshKey, Base64.DEFAULT))
-        }
-
-        override fun removeLicenseId(psshKey: ByteArray) {
-            preferencesRepository.removeOfflineLicenseKeySetId(Base64.encodeToString(psshKey, Base64.DEFAULT))
+            val licenseId = preferencesRepository.getOfflineLicenseKeySetId(psshKey.toBase64())
+            return licenseId?.fromBase64()
         }
     }
 

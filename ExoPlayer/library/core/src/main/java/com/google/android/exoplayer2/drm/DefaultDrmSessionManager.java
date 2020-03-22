@@ -18,10 +18,13 @@ package com.google.android.exoplayer2.drm;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Base64;
 
 import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.exoplayer2.C;
@@ -258,8 +261,11 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
   @Nullable private Looper playbackLooper;
   private int mode;
   @Nullable private byte[] offlineLicenseKeySetId;
+  private HandlerThread requestHandlerThread;
+  private RequestHandler requestHandler;
 
   /* package */ volatile @Nullable MediaDrmHandler mediaDrmHandler;
+  private DefaultDrmSession.OfflineLicenseRepository offlineLicenseRepository;
 
   /**
    * @param uuid The UUID of the drm scheme.
@@ -368,6 +374,14 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
     mode = MODE_PLAYBACK;
     sessions = new ArrayList<>();
     provisioningSessions = new ArrayList<>();
+    requestHandlerThread = new HandlerThread("OfflineDrmSession");
+    requestHandlerThread.start();
+    requestHandler = new RequestHandler(requestHandlerThread.getLooper());
+
+  }
+
+  public void setOfflineLicenseRepository(DefaultDrmSession.OfflineLicenseRepository offlineLicenseRepository) {
+    this.offlineLicenseRepository = offlineLicenseRepository;
   }
 
   /**
@@ -438,6 +452,7 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
     if (--prepareCallsCount == 0) {
       Assertions.checkNotNull(exoMediaDrm).release();
       exoMediaDrm = null;
+      Util.castNonNull(requestHandlerThread).quit();
     }
   }
 
@@ -520,12 +535,12 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
     } else {
       // Only use an existing session if it has matching init data.
       session = null;
-      for (DefaultDrmSession<T> existingSession : sessions) {
-        if (Util.areEqual(existingSession.schemeDatas, schemeDatas)) {
-          session = existingSession;
-          break;
-        }
-      }
+//      for (DefaultDrmSession<T> existingSession : sessions) {
+//        if (Util.areEqual(existingSession.schemeDatas, schemeDatas)) {
+//          session = existingSession;
+//          break;
+//        }
+//      }
     }
 
     if (session == null) {
@@ -536,8 +551,13 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
       }
       sessions.add(session);
     }
+    session.setOfflineLicenseRepository(offlineLicenseRepository);
     session.acquire();
     return session;
+  }
+
+  public void justDownload(DrmInitData drmInitData) {
+    requestHandler.post(drmInitData);
   }
 
   @Override
@@ -689,6 +709,38 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
         int extra,
         @Nullable byte[] data) {
       Assertions.checkNotNull(mediaDrmHandler).obtainMessage(event, sessionId).sendToTarget();
+    }
+  }
+
+  private class RequestHandler extends Handler {
+
+    final int MSG_OFFLINE_LICENSE = 0;
+
+    public RequestHandler(Looper backgroundLooper) {
+      super(backgroundLooper);
+    }
+
+    void post(DrmInitData drmInitData) {
+      obtainMessage(MSG_OFFLINE_LICENSE, drmInitData).sendToTarget();
+    }
+
+    @Override
+    public void handleMessage(@NonNull Message msg) {
+
+      if (msg.what == MSG_OFFLINE_LICENSE) {
+        final OfflineLicenseHelper offlineLicenseHelper =
+                new OfflineLicenseHelper(uuid, exoMediaDrmProvider, callback, null);
+
+        offlineLicenseHelper.setOfflineLicenseRepository(offlineLicenseRepository);
+
+        try {
+          byte[] licenseId = offlineLicenseHelper.downloadLicense((DrmInitData) msg.obj);
+          Log.i("logger", "DownloadedLicenseId=" + Base64.encodeToString(licenseId, Base64.DEFAULT));
+        } catch (DrmSessionException e) {
+          Log.i("logger", "DownloadedLicenseId=null");
+          e.printStackTrace();
+        }
+      }
     }
   }
 }
