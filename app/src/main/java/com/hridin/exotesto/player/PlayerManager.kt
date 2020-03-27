@@ -71,9 +71,11 @@ class PlayerManager(private val context: Context, private val preferencesReposit
             }
 
             drmSessionManager = buildDrmSessionManager(drmInfo.licenseUrl, mapRequest)
+            exoPlayer?.prepare(MediaSourceFactoryImpl.create(url, dataSourceFactory, drmSessionManager))
+        } else {
+            exoPlayer?.prepare(MediaSourceFactoryImpl.create(url, dataSourceFactory, DrmSessionManager.DUMMY))
         }
 
-        exoPlayer?.prepare(MediaSourceFactoryImpl.create(url, dataSourceFactory, drmSessionManager))
         exoPlayer?.playWhenReady = true
     }
 

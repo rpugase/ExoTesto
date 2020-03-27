@@ -21,7 +21,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Base64;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
@@ -560,6 +559,10 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
     requestHandler.post(drmInitData);
   }
 
+  public void justDownloadSync(DrmInitData drmInitData) {
+    downloadLicense(drmInitData);
+  }
+
   @Override
   @Nullable
   public Class<T> getExoMediaCryptoType(DrmInitData drmInitData) {
@@ -726,21 +729,22 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
 
     @Override
     public void handleMessage(@NonNull Message msg) {
-
       if (msg.what == MSG_OFFLINE_LICENSE) {
-        final OfflineLicenseHelper offlineLicenseHelper =
-                new OfflineLicenseHelper(uuid, exoMediaDrmProvider, callback, null);
-
-        offlineLicenseHelper.setOfflineLicenseRepository(offlineLicenseRepository);
-
-        try {
-          byte[] licenseId = offlineLicenseHelper.downloadLicense((DrmInitData) msg.obj);
-          Log.i("logger", "DownloadedLicenseId=" + Base64.encodeToString(licenseId, Base64.DEFAULT));
-        } catch (DrmSessionException e) {
-          Log.i("logger", "DownloadedLicenseId=null");
-          e.printStackTrace();
-        }
+        downloadLicense((DrmInitData) msg.obj);
       }
+    }
+  }
+
+  private void downloadLicense(DrmInitData drmInitData) {
+    final OfflineLicenseHelper offlineLicenseHelper =
+            new OfflineLicenseHelper(uuid, exoMediaDrmProvider, callback, null);
+
+    offlineLicenseHelper.setOfflineLicenseRepository(offlineLicenseRepository);
+
+    try {
+      offlineLicenseHelper.downloadLicense(drmInitData);
+    } catch (DrmSessionException e) {
+      e.printStackTrace();
     }
   }
 }

@@ -16,8 +16,6 @@
 package com.google.android.exoplayer2.source;
 
 import android.os.Looper;
-import android.util.Base64;
-import android.util.Log;
 import android.util.Pair;
 
 import androidx.annotation.CallSuper;
@@ -27,7 +25,6 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.FormatHolder;
 import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
-import com.google.android.exoplayer2.drm.DefaultDrmSession;
 import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
 import com.google.android.exoplayer2.drm.DrmInitData;
 import com.google.android.exoplayer2.drm.DrmSession;
@@ -346,6 +343,7 @@ public class SampleQueue implements TrackOutput {
    * @return Whether the seek was successful.
    */
   public final synchronized boolean seekTo(int sampleIndex) {
+    onSeek = true;
     rewind();
     if (sampleIndex < absoluteFirstIndex || sampleIndex > absoluteFirstIndex + length) {
       return false;
@@ -363,6 +361,7 @@ public class SampleQueue implements TrackOutput {
    * @return Whether the seek was successful.
    */
   public final synchronized boolean seekTo(long timeUs, boolean allowTimeBeyondBuffer) {
+    onSeek = true;
     rewind();
     int relativeReadIndex = getRelativeIndex(readPosition);
     if (!hasNextSample()
@@ -540,6 +539,7 @@ public class SampleQueue implements TrackOutput {
 
   private boolean needUpdateFormat = false;
   private boolean licenseDownloadRunned = false;
+  private boolean onSeek = false;
 
   @SuppressWarnings("ReferenceEquality") // See comments in setUpstreamFormat
   private synchronized int readSampleMetadata(
@@ -571,24 +571,17 @@ public class SampleQueue implements TrackOutput {
       if (licensePlaybackDurationPair != null) {
         final long licenseDuration = licensePlaybackDurationPair.first;
 
-        if (!licenseDownloadRunned && licenseDuration > C.TIME_LICENSE_UPDATE && licenseDuration <= (C.TIME_LICENSE_UPDATE + 10)) {
+        if (relativeReadIndex > 0 && !licenseDownloadRunned && licenseDuration > C.TIME_LICENSE_UPDATE && licenseDuration <= (C.TIME_LICENSE_UPDATE + 10)) {
           if (drmSessionManager instanceof DefaultDrmSessionManager) {
             ((DefaultDrmSessionManager) drmSessionManager).justDownload(formats[relativeReadIndex].drmInitData);
             licenseDownloadRunned = true;
           }
         }
 
-        if (licenseDuration == C.TIME_LICENSE_UPDATE || licenseDuration == 0) {
-          if (MimeTypes.isVideo(formats[relativeReadIndex].sampleMimeType)) needUpdateFormat = true;
-          else downstreamFormat = downstreamFormat.copyWithBitrate(downstreamFormat.bitrate);
+        if (!needUpdateFormat && licenseDuration <= C.TIME_LICENSE_UPDATE && licenseDuration >= 0) {
+          needUpdateFormat = true;
         }
       }
-    }
-
-    if (needUpdateFormat && (relativeReadIndex >= flags.length || (flags[relativeReadIndex] & C.BUFFER_FLAG_KEY_FRAME) != 0)) {
-      needUpdateFormat = false;
-      licenseDownloadRunned = false;
-      downstreamFormat = downstreamFormat.copyWithBitrate(downstreamFormat.bitrate);
     }
 
     if (!hasNextSample) {
@@ -625,6 +618,16 @@ public class SampleQueue implements TrackOutput {
     extrasHolder.cryptoData = cryptoDatas[relativeReadIndex];
 
     readPosition++;
+
+    if (needUpdateFormat && (flags[relativeReadIndex] & C.BUFFER_FLAG_KEY_FRAME) != 0) {
+      if (relativeReadIndex != 0) onSeek = false;
+      needUpdateFormat = false;
+      licenseDownloadRunned = false;
+      updateDrmSession(formats[relativeReadIndex], formatHolder);
+      buffer.addFlag(C.BUFFER_FLAG_CHANGE_DRM);
+      return C.RESULT_BUFFER_READ;
+    }
+
     return C.RESULT_BUFFER_READ;
   }
 
@@ -826,14 +829,30 @@ public class SampleQueue implements TrackOutput {
 //    }
     // Ensure we acquire the new session before releasing the previous one in case the same session
     // is being used for both DrmInitData.
+
+    updateDrmSession(newFormat, outputFormatHolder);
+  }
+
+  private void updateDrmSession(Format newFormat, FormatHolder outputFormatHolder) {
+    DrmInitData newDrmInitData = newFormat.drmInitData;
     DrmSession<?> previousSession = currentDrmSession;
     Looper playbackLooper = Assertions.checkNotNull(Looper.myLooper());
+
+    if (onSeek) {
+      //TODO: think about onSeek flag
+      onSeek = false;
+      if (drmSessionManager instanceof DefaultDrmSessionManager && newDrmInitData != null) {
+        ((DefaultDrmSessionManager) drmSessionManager).justDownloadSync(newDrmInitData);
+      }
+    }
+
     currentDrmSession =
-        newDrmInitData != null
-            ? drmSessionManager.acquireSession(playbackLooper, newDrmInitData)
-            : drmSessionManager.acquirePlaceholderSession(
-                playbackLooper, MimeTypes.getTrackType(newFormat.sampleMimeType));
+            newDrmInitData != null
+                    ? drmSessionManager.acquireSession(playbackLooper, newDrmInitData)
+                    : drmSessionManager.acquirePlaceholderSession(
+                    playbackLooper, MimeTypes.getTrackType(newFormat.sampleMimeType));
     outputFormatHolder.drmSession = currentDrmSession;
+    outputFormatHolder.includesDrmSession = true;
 
     if (previousSession != null) {
       previousSession.release();

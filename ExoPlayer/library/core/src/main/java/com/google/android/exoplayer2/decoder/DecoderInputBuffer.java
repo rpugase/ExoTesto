@@ -164,6 +164,10 @@ public class DecoderInputBuffer extends Buffer {
     return getFlag(C.BUFFER_FLAG_ENCRYPTED);
   }
 
+  public final boolean isDrmEos() {
+    return getFlag(C.BUFFER_FLAG_CHANGE_DRM);
+  }
+
   /**
    * Flips {@link #data} and {@link #supplementalData} in preparation for being queued to a decoder.
    *

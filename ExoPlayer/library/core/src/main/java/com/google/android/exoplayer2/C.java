@@ -507,7 +507,8 @@ public final class C {
         BUFFER_FLAG_HAS_SUPPLEMENTAL_DATA,
         BUFFER_FLAG_LAST_SAMPLE,
         BUFFER_FLAG_ENCRYPTED,
-        BUFFER_FLAG_DECODE_ONLY
+        BUFFER_FLAG_DECODE_ONLY,
+        BUFFER_FLAG_CHANGE_DRM
       })
   public @interface BufferFlags {}
   /**
@@ -526,6 +527,8 @@ public final class C {
   public static final int BUFFER_FLAG_ENCRYPTED = 1 << 30; // 0x40000000
   /** Indicates that a buffer should be decoded but not rendered. */
   public static final int BUFFER_FLAG_DECODE_ONLY = 1 << 31; // 0x80000000
+  /** Indicates that a drm license should update. */
+  public static final int BUFFER_FLAG_CHANGE_DRM = 1 << 5; // 0x100000
 
   // LINT.IfChange
   /**

@@ -22,6 +22,7 @@ import android.media.MediaCodec.CryptoException;
 import android.media.MediaCrypto;
 import android.media.MediaCryptoException;
 import android.media.MediaFormat;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 
@@ -1186,8 +1187,18 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
       onQueueInputBuffer(buffer);
 
       if (bufferEncrypted) {
-        MediaCodec.CryptoInfo cryptoInfo = getFrameworkCryptoInfo(buffer,
-            adaptiveReconfigurationBytes);
+        if (buffer.isDrmEos() && formatHolder != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          try {
+            setSourceDrmSession((DrmSession<FrameworkMediaCrypto>) formatHolder.drmSession);
+            @Nullable FrameworkMediaCrypto sessionMediaCrypto = sourceDrmSession.getMediaCrypto();
+            mediaCrypto.setMediaDrmSession(sessionMediaCrypto.sessionId);
+            setCodecDrmSession(sourceDrmSession);
+          } catch (MediaCryptoException e) {
+            throw createRendererException(e, inputFormat);
+          }
+        }
+
+        MediaCodec.CryptoInfo cryptoInfo = getFrameworkCryptoInfo(buffer, adaptiveReconfigurationBytes);
         codec.queueSecureInputBuffer(inputIndex, 0, cryptoInfo, presentationTimeUs, 0);
       } else {
         codec.queueInputBuffer(inputIndex, 0, buffer.data.limit(), presentationTimeUs, 0);
@@ -1375,7 +1386,7 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
    */
   protected @KeepCodecResult int canKeepCodec(
       MediaCodec codec, MediaCodecInfo codecInfo, Format oldFormat, Format newFormat) {
-    return KEEP_CODEC_RESULT_NO;
+    return KEEP_CODEC_RESULT_YES_WITHOUT_RECONFIGURATION;
   }
 
   @Override

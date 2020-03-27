@@ -23,6 +23,7 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.text.format.DateUtils;
 import android.util.Pair;
 
 import androidx.annotation.Nullable;
@@ -51,7 +52,7 @@ import java.util.UUID;
 
 /** A {@link DrmSession} that supports playbacks using {@link ExoMediaDrm}. */
 @TargetApi(18)
-/* package */ class DefaultDrmSession<T extends ExoMediaCrypto> implements DrmSession<T> {
+public class DefaultDrmSession<T extends ExoMediaCrypto> implements DrmSession<T> {
 
   /** Thrown when an unexpected exception or error is thrown during provisioning or key requests. */
   public static final class UnexpectedDrmSessionException extends IOException {
@@ -130,6 +131,12 @@ import java.util.UUID;
 
   @Nullable private KeyRequest currentKeyRequest;
   @Nullable private ProvisionRequest currentProvisionRequest;
+
+  private OfflineLicenseRepository offlineLicenseRepository;
+
+  public void setOfflineLicenseRepository(OfflineLicenseRepository offlineLicenseRepository) {
+    this.offlineLicenseRepository = offlineLicenseRepository;
+  }
 
   /**
    * Instantiates a new DRM session.
@@ -358,6 +365,10 @@ import java.util.UUID;
     provisioningManager.onProvisionCompleted();
   }
 
+  private byte[] getPsshKey() {
+    return schemeDatas.get(0).data;
+  }
+
   @RequiresNonNull("sessionId")
   private void doLicense(boolean allowRetry) {
     if (isPlaceholderSession) {
@@ -367,25 +378,25 @@ import java.util.UUID;
     switch (mode) {
       case DefaultDrmSessionManager.MODE_PLAYBACK:
       case DefaultDrmSessionManager.MODE_QUERY:
-        if (offlineLicenseKeySetId == null) {
-          postKeyRequest(sessionId, ExoMediaDrm.KEY_TYPE_STREAMING, allowRetry);
-        } else if (state == STATE_OPENED_WITH_KEYS || restoreKeys()) {
-          long licenseDurationRemainingSec = getLicenseDurationRemainingSec();
-          if (mode == DefaultDrmSessionManager.MODE_PLAYBACK
-              && licenseDurationRemainingSec <= MAX_LICENSE_DURATION_TO_RENEW_SECONDS) {
-            Log.d(
-                TAG,
-                "Offline license has expired or will expire soon. "
-                    + "Remaining seconds: "
-                    + licenseDurationRemainingSec);
+        if (offlineLicenseRepository == null) {
+          if (offlineLicenseKeySetId == null) postKeyRequest(sessionId, ExoMediaDrm.KEY_TYPE_STREAMING, allowRetry);
+          else if (restoreKeys()) {
+            state = STATE_OPENED_WITH_KEYS;
+            eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmKeysRestored);
+          }
+        } else {
+          offlineLicenseKeySetId = offlineLicenseRepository.getLicenseId(getPsshKey());
+          long licenseDurationRemainingSec = (offlineLicenseRepository.getLicenseDurationRemainingSec(getPsshKey())
+                  - System.currentTimeMillis()) / DateUtils.SECOND_IN_MILLIS;
+
+          if (offlineLicenseKeySetId == null || licenseDurationRemainingSec < C.TIME_LICENSE_UPDATE) {
             postKeyRequest(sessionId, ExoMediaDrm.KEY_TYPE_OFFLINE, allowRetry);
-          } else if (licenseDurationRemainingSec <= 0) {
-            onError(new KeysExpiredException());
-          } else {
+          } else if (restoreKeys()) {
             state = STATE_OPENED_WITH_KEYS;
             eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmKeysRestored);
           }
         }
+
         break;
       case DefaultDrmSessionManager.MODE_DOWNLOAD:
         if (offlineLicenseKeySetId == null || restoreKeys()) {
@@ -457,11 +468,14 @@ import java.util.UUID;
       } else {
         byte[] keySetId = mediaDrm.provideKeyResponse(sessionId, responseData);
         if ((mode == DefaultDrmSessionManager.MODE_DOWNLOAD
-                || (mode == DefaultDrmSessionManager.MODE_PLAYBACK
-                    && offlineLicenseKeySetId != null))
+                || mode == DefaultDrmSessionManager.MODE_PLAYBACK)
             && keySetId != null
             && keySetId.length != 0) {
           offlineLicenseKeySetId = keySetId;
+          if (offlineLicenseRepository != null) {
+            offlineLicenseRepository.saveLicenseId(getPsshKey(), keySetId,
+                    System.currentTimeMillis() + getLicenseDurationRemainingSec() * DateUtils.SECOND_IN_MILLIS);
+          }
         }
         state = STATE_OPENED_WITH_KEYS;
         eventDispatcher.dispatch(DefaultDrmSessionEventListener::onDrmKeysLoaded);
@@ -607,5 +621,11 @@ import java.util.UUID;
       this.startTimeMs = startTimeMs;
       this.request = request;
     }
+  }
+
+  public interface OfflineLicenseRepository {
+    void saveLicenseId(byte[] psshKey, byte[] licenseId, long licenseDurationRemainingSec);
+    @Nullable byte[] getLicenseId(byte[] psshKey);
+    long getLicenseDurationRemainingSec(byte[] psshKey);
   }
 }

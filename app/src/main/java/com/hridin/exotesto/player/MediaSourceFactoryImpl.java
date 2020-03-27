@@ -5,6 +5,7 @@ import android.text.TextUtils;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
+import com.google.android.exoplayer2.drm.DrmSessionManager;
 import com.google.android.exoplayer2.drm.ExoMediaCrypto;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.ProgressiveMediaSource;
@@ -17,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class MediaSourceFactoryImpl {
 
-    static MediaSource create(String url, DataSource.Factory dataSourceFactory, @Nullable DefaultDrmSessionManager<ExoMediaCrypto> drmSessionManager) {
+    static MediaSource create(String url, DataSource.Factory dataSourceFactory, @Nullable DrmSessionManager<ExoMediaCrypto> drmSessionManager) {
         if (TextUtils.isEmpty(url)) return null;
         if (url.startsWith("/")) {
             url = "file://" + url;
