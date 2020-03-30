@@ -3,7 +3,6 @@ package com.hridin.exotesto.player
 import android.content.Context
 import android.media.MediaCodec
 import android.os.Handler
-import android.util.Base64
 import com.google.android.exoplayer2.DefaultLoadControl
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
@@ -70,7 +69,7 @@ class PlayerManager(private val context: Context, private val preferencesReposit
                 DrmSystem.BUYDRM -> hashMapOf("customdata" to drmInfo.token)
             }
 
-            drmSessionManager = buildDrmSessionManager(drmInfo.licenseUrl, mapRequest)
+            drmSessionManager = buildDrmSessionManager(drmInfo.licenseUrl, mapRequest, drmInfo.persist)
             exoPlayer?.prepare(MediaSourceFactoryImpl.create(url, dataSourceFactory, drmSessionManager))
         } else {
             exoPlayer?.prepare(MediaSourceFactoryImpl.create(url, dataSourceFactory, DrmSessionManager.DUMMY))
@@ -109,7 +108,11 @@ class PlayerManager(private val context: Context, private val preferencesReposit
         }
     }
 
-    private fun buildDrmSessionManager(licenseUrl: String, hashMap: HashMap<String, String>): DefaultDrmSessionManager<ExoMediaCrypto> {
+    private fun buildDrmSessionManager(
+        licenseUrl: String,
+        hashMap: HashMap<String, String>,
+        persist: Boolean
+    ): DefaultDrmSessionManager<ExoMediaCrypto> {
         mediaDrmCallback = HttpMediaDrmCallback(licenseUrl, dataSourceFactory)
 
         for (property in hashMap.entries) {
@@ -117,6 +120,7 @@ class PlayerManager(private val context: Context, private val preferencesReposit
         }
         return DefaultDrmSessionManager.Builder()
             .setMultiSession(true)
+            .setPersist(persist)
             .build(mediaDrmCallback!!)
             .also {
                 it.addListener(handler, defaultDrmSessionEventListener)

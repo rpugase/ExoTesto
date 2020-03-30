@@ -62,6 +62,7 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
     private UUID uuid;
     private ExoMediaDrm.Provider<ExoMediaCrypto> exoMediaDrmProvider;
     private boolean multiSession;
+    private boolean persist;
     private int[] useDrmSessionsForClearContentTrackTypes;
     private boolean playClearSamplesWithoutKeys;
     private LoadErrorHandlingPolicy loadErrorHandlingPolicy;
@@ -135,6 +136,11 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
       return this;
     }
 
+    public Builder setPersist(boolean persist) {
+      this.persist = persist;
+      return this;
+    }
+
     /**
      * Sets whether this session manager should attach {@link DrmSession DrmSessions} to the clear
      * sections of the media content.
@@ -192,6 +198,7 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
           mediaDrmCallback,
           keyRequestParameters,
           multiSession,
+          persist,
           useDrmSessionsForClearContentTrackTypes,
           playClearSamplesWithoutKeys,
           loadErrorHandlingPolicy);
@@ -245,6 +252,7 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
   private final HashMap<String, String> keyRequestParameters;
   private final EventDispatcher<DefaultDrmSessionEventListener> eventDispatcher;
   private final boolean multiSession;
+  private final boolean persist;
   private final int[] useDrmSessionsForClearContentTrackTypes;
   private final boolean playClearSamplesWithoutKeys;
   private final ProvisioningManagerImpl provisioningManagerImpl;
@@ -280,13 +288,15 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
       UUID uuid,
       ExoMediaDrm<T> exoMediaDrm,
       MediaDrmCallback callback,
-      @Nullable HashMap<String, String> keyRequestParameters) {
+      @Nullable HashMap<String, String> keyRequestParameters,
+      boolean persist) {
     this(
         uuid,
         exoMediaDrm,
         callback,
         keyRequestParameters == null ? new HashMap<>() : keyRequestParameters,
         /* multiSession= */ false,
+        persist,
         INITIAL_DRM_REQUEST_RETRY_COUNT);
   }
 
@@ -306,13 +316,15 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
       ExoMediaDrm<T> exoMediaDrm,
       MediaDrmCallback callback,
       @Nullable HashMap<String, String> keyRequestParameters,
-      boolean multiSession) {
+      boolean multiSession,
+      boolean persist) {
     this(
         uuid,
         exoMediaDrm,
         callback,
         keyRequestParameters == null ? new HashMap<>() : keyRequestParameters,
         multiSession,
+        persist,
         INITIAL_DRM_REQUEST_RETRY_COUNT);
   }
 
@@ -335,6 +347,7 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
       MediaDrmCallback callback,
       @Nullable HashMap<String, String> keyRequestParameters,
       boolean multiSession,
+      boolean persist,
       int initialDrmRequestRetryCount) {
     this(
         uuid,
@@ -342,6 +355,7 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
         callback,
         keyRequestParameters == null ? new HashMap<>() : keyRequestParameters,
         multiSession,
+        persist,
         /* useDrmSessionsForClearContentTrackTypes= */ new int[0],
         /* playClearSamplesWithoutKeys= */ false,
         new DefaultLoadErrorHandlingPolicy(initialDrmRequestRetryCount));
@@ -355,6 +369,7 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
       MediaDrmCallback callback,
       HashMap<String, String> keyRequestParameters,
       boolean multiSession,
+      boolean persist,
       int[] useDrmSessionsForClearContentTrackTypes,
       boolean playClearSamplesWithoutKeys,
       LoadErrorHandlingPolicy loadErrorHandlingPolicy) {
@@ -366,6 +381,7 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
     this.keyRequestParameters = keyRequestParameters;
     this.eventDispatcher = new EventDispatcher<>();
     this.multiSession = multiSession;
+    this.persist = persist;
     this.useDrmSessionsForClearContentTrackTypes = useDrmSessionsForClearContentTrackTypes;
     this.playClearSamplesWithoutKeys = playClearSamplesWithoutKeys;
     this.loadErrorHandlingPolicy = loadErrorHandlingPolicy;
@@ -550,7 +566,8 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
       }
       sessions.add(session);
     }
-    session.setOfflineLicenseRepository(offlineLicenseRepository);
+    if (persist)
+      session.setOfflineLicenseRepository(offlineLicenseRepository);
     session.acquire();
     return session;
   }
