@@ -572,11 +572,11 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
     return session;
   }
 
-  public void justDownload(DrmInitData drmInitData) {
+  public void downloadLicenseAsync(DrmInitData drmInitData) {
     requestHandler.post(drmInitData);
   }
 
-  public void justDownloadSync(DrmInitData drmInitData) {
+  public void downloadLicenseSync(DrmInitData drmInitData) {
     downloadLicense(drmInitData);
   }
 

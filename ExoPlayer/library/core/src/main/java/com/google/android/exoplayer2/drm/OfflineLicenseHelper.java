@@ -163,6 +163,7 @@ public final class OfflineLicenseHelper<T extends ExoMediaCrypto> {
             new DefaultDrmSessionManager.Builder()
                 .setUuidAndExoMediaDrmProvider(uuid, mediaDrmProvider)
                 .setKeyRequestParameters(optionalKeyRequestParameters)
+                .setPersist(true)
                 .build(callback);
     drmSessionManager.addListener(new Handler(handlerThread.getLooper()), eventListener);
   }

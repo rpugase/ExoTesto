@@ -165,7 +165,7 @@ public class DecoderInputBuffer extends Buffer {
   }
 
   public final boolean isDrmEos() {
-    return getFlag(C.BUFFER_FLAG_CHANGE_DRM);
+    return getFlag(C.BUFFER_FLAG_UPDATE_DRM_SESSION);
   }
 
   /**

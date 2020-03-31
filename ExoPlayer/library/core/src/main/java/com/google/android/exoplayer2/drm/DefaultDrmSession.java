@@ -101,7 +101,6 @@ public class DefaultDrmSession<T extends ExoMediaCrypto> implements DrmSession<T
 
   private static final int MSG_PROVISION = 0;
   private static final int MSG_KEYS = 1;
-  private static final int MAX_LICENSE_DURATION_TO_RENEW_SECONDS = 60;
 
   /** The DRM scheme datas, or null if this session uses offline keys. */
   @Nullable public final List<SchemeData> schemeDatas;
@@ -389,7 +388,7 @@ public class DefaultDrmSession<T extends ExoMediaCrypto> implements DrmSession<T
           long licenseDurationRemainingSec = (offlineLicenseRepository.getLicenseDurationRemainingSec(getPsshKey())
                   - System.currentTimeMillis()) / DateUtils.SECOND_IN_MILLIS;
 
-          if (offlineLicenseKeySetId == null || licenseDurationRemainingSec < C.TIME_LICENSE_UPDATE) {
+          if (offlineLicenseKeySetId == null || licenseDurationRemainingSec < C.MAX_LICENSE_DURATION_TO_RENEW_SECONDS) {
             postKeyRequest(sessionId, ExoMediaDrm.KEY_TYPE_OFFLINE, allowRetry);
           } else if (restoreKeys()) {
             state = STATE_OPENED_WITH_KEYS;

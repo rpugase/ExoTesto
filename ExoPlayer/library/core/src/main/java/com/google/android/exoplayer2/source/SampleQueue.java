@@ -343,7 +343,6 @@ public class SampleQueue implements TrackOutput {
    * @return Whether the seek was successful.
    */
   public final synchronized boolean seekTo(int sampleIndex) {
-    onSeek = true;
     rewind();
     if (sampleIndex < absoluteFirstIndex || sampleIndex > absoluteFirstIndex + length) {
       return false;
@@ -361,7 +360,6 @@ public class SampleQueue implements TrackOutput {
    * @return Whether the seek was successful.
    */
   public final synchronized boolean seekTo(long timeUs, boolean allowTimeBeyondBuffer) {
-    onSeek = true;
     rewind();
     int relativeReadIndex = getRelativeIndex(readPosition);
     if (!hasNextSample()
@@ -537,9 +535,9 @@ public class SampleQueue implements TrackOutput {
     sampleDataQueue.rewind();
   }
 
-  private boolean needUpdateFormat = false;
+  private boolean needUpdateDrmSession = false;
   private boolean licenseDownloadRunned = false;
-  private boolean onSeek = false;
+  private boolean forceSyncDownloadingDrmSession = false;
 
   @SuppressWarnings("ReferenceEquality") // See comments in setUpstreamFormat
   private synchronized int readSampleMetadata(
@@ -566,20 +564,25 @@ public class SampleQueue implements TrackOutput {
       }
     }
 
-    if (currentDrmSession != null) {
+    if (currentDrmSession != null && relativeReadIndex >= 0) {
       final Pair<Long, Long> licensePlaybackDurationPair = WidevineUtil.getLicenseDurationRemainingSec(currentDrmSession);
       if (licensePlaybackDurationPair != null) {
         final long licenseDuration = licensePlaybackDurationPair.first;
 
-        if (relativeReadIndex > 0 && !licenseDownloadRunned && licenseDuration > C.TIME_LICENSE_UPDATE && licenseDuration <= (C.TIME_LICENSE_UPDATE + 10)) {
+        if (!licenseDownloadRunned && licenseDuration > C.MAX_LICENSE_DURATION_TO_RENEW_SECONDS && licenseDuration <= C.MAX_LICENSE_DURATION_TO_DOWNLOAD_SECONDS) {
           if (drmSessionManager instanceof DefaultDrmSessionManager) {
-            ((DefaultDrmSessionManager) drmSessionManager).justDownload(formats[relativeReadIndex].drmInitData);
+            ((DefaultDrmSessionManager) drmSessionManager).downloadLicenseAsync(formats[relativeReadIndex].drmInitData);
             licenseDownloadRunned = true;
           }
         }
 
-        if (!needUpdateFormat && licenseDuration <= C.TIME_LICENSE_UPDATE && licenseDuration >= 0) {
-          needUpdateFormat = true;
+        if (!needUpdateDrmSession) {
+          if (licenseDuration == 0) {
+            forceSyncDownloadingDrmSession = true;
+            needUpdateDrmSession = true;
+          } else if (licenseDuration <= C.MAX_LICENSE_DURATION_TO_RENEW_SECONDS && (flags[relativeReadIndex] & C.BUFFER_FLAG_KEY_FRAME) != 0) {
+            needUpdateDrmSession = true;
+          }
         }
       }
     }
@@ -619,12 +622,11 @@ public class SampleQueue implements TrackOutput {
 
     readPosition++;
 
-    if (needUpdateFormat && (flags[relativeReadIndex] & C.BUFFER_FLAG_KEY_FRAME) != 0) {
-      if (relativeReadIndex != 0) onSeek = false;
-      needUpdateFormat = false;
+    if (needUpdateDrmSession) {
+      needUpdateDrmSession = false;
       licenseDownloadRunned = false;
       updateDrmSession(formats[relativeReadIndex], formatHolder);
-      buffer.addFlag(C.BUFFER_FLAG_CHANGE_DRM);
+      buffer.addFlag(C.BUFFER_FLAG_UPDATE_DRM_SESSION);
       return C.RESULT_BUFFER_READ;
     }
 
@@ -823,10 +825,10 @@ public class SampleQueue implements TrackOutput {
     DrmInitData newDrmInitData = newFormat.drmInitData;
     outputFormatHolder.includesDrmSession = true;
     outputFormatHolder.drmSession = currentDrmSession;
-//    if (!isFirstFormat && oldDrmInitData == newDrmInitData) {
-//      // Nothing to do.
-//      return;
-//    }
+    if (!isFirstFormat && oldDrmInitData == newDrmInitData) {
+      // Nothing to do.
+      return;
+    }
     // Ensure we acquire the new session before releasing the previous one in case the same session
     // is being used for both DrmInitData.
 
@@ -838,11 +840,10 @@ public class SampleQueue implements TrackOutput {
     DrmSession<?> previousSession = currentDrmSession;
     Looper playbackLooper = Assertions.checkNotNull(Looper.myLooper());
 
-    if (onSeek) {
-      //TODO: think about onSeek flag
-      onSeek = false;
+    if (forceSyncDownloadingDrmSession) {
+      forceSyncDownloadingDrmSession = false;
       if (drmSessionManager instanceof DefaultDrmSessionManager && newDrmInitData != null) {
-        ((DefaultDrmSessionManager) drmSessionManager).justDownloadSync(newDrmInitData);
+        ((DefaultDrmSessionManager) drmSessionManager).downloadLicenseSync(newDrmInitData);
       }
     }
 
