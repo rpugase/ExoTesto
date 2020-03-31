@@ -11,20 +11,18 @@ import com.google.android.exoplayer2.drm.*
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSourceFactory
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.util.Util
-import com.hridin.exotesto.R
+import com.hridin.exotesto.*
 import com.hridin.exotesto.data.DrmInfo
 import com.hridin.exotesto.data.DrmSystem
-import com.hridin.exotesto.fromBase64
-import com.hridin.exotesto.getMethodName
-import com.hridin.exotesto.repository.PreferencesRepository
-import com.hridin.exotesto.toBase64
+import com.hridin.exotesto.data.db.DrmRepository
+import com.hridin.exotesto.data.db.DrmStreamEntity
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import timber.log.Timber
+import java.text.SimpleDateFormat
 import java.util.*
 
-
-class PlayerManager(private val context: Context, private val preferencesRepository: PreferencesRepository) : Player.EventListener {
+class PlayerManager(private val context: Context, private val drmRepository: DrmRepository) : Player.EventListener {
 
     private var drmInfo: DrmInfo? = null
     private var exoPlayer: SimpleExoPlayer? = null
@@ -129,18 +127,25 @@ class PlayerManager(private val context: Context, private val preferencesReposit
     }
 
     private val offlineLicenseRepository = object : DefaultDrmSession.OfflineLicenseRepository {
+
+        private var serverDateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+
         override fun saveLicenseId(psshKey: ByteArray, licenseId: ByteArray, licenseDurationRemainingSec: Long) {
-            preferencesRepository.setOfflineLicenseKeySetId(psshKey.toBase64(),
-                licenseId.toBase64() + "::" + licenseDurationRemainingSec)
+            val formatter = SimpleDateFormat(serverDateFormat, Locale.US)
+            formatter.timeZone = TimeZone.getDefault()
+            val drmEntity = DrmStreamEntity(psshKey.toBase64(), licenseId.toBase64(),
+                "vod", formatter.format(licenseDurationRemainingSec))
+            drmRepository.insert(drmEntity)
         }
 
         override fun getLicenseDurationRemainingSec(psshKey: ByteArray): Long {
-            return preferencesRepository.getLicenseDurationRemainingSec(psshKey.toBase64()) ?: 0L
+            val formatter = SimpleDateFormat(serverDateFormat, Locale.US)
+            formatter.timeZone = TimeZone.getTimeZone("UTC")
+            return App.instance.drmRepository.getByPssh(psshKey.toBase64())?.let { formatter.parse(it.licenseDurationDate).time } ?: 0
         }
 
         override fun getLicenseId(psshKey: ByteArray): ByteArray? {
-            val licenseId = preferencesRepository.getOfflineLicenseKeySetId(psshKey.toBase64())
-            return licenseId?.fromBase64()
+            return App.instance.drmRepository.getByPssh(psshKey.toBase64())?.licenseId?.fromBase64()
         }
     }
 

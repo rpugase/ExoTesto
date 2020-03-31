@@ -8,6 +8,7 @@ import android.view.accessibility.AccessibilityEvent
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
+import com.hridin.exotesto.App
 import com.hridin.exotesto.R
 import com.hridin.exotesto.repository.PreferencesRepository
 import com.hridin.exotesto.repository.StreamRepository
@@ -45,6 +46,6 @@ class StreamListFragment : Fragment() {
 
         ViewCompat.setNestedScrollingEnabled(rvStreams, false)
 
-        btnCleanLicenses.setOnClickListener { mPreferencesRepository.clear() }
+        btnCleanLicenses.setOnClickListener { App.instance.drmRepository.deleteAll() }
     }
 }

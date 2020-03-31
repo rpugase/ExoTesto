@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.hridin.exotesto.App
 import com.hridin.exotesto.R
 import com.hridin.exotesto.data.Stream
 import com.hridin.exotesto.player.PlayerManager
@@ -23,7 +24,7 @@ class PlayerFragment : Fragment() {
         }
     }
 
-    private val mPlayer by lazy { PlayerManager(context!!, PreferencesRepository(context!!.applicationContext)) }
+    private val mPlayer by lazy { PlayerManager(context!!, App.instance.drmRepository) }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_player, container, false)
