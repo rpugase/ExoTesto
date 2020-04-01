@@ -535,9 +535,7 @@ public class SampleQueue implements TrackOutput {
     sampleDataQueue.rewind();
   }
 
-  private boolean needUpdateDrmSession = false;
   private boolean licenseDownloadRunned = false;
-  private boolean forceSyncDownloadingDrmSession = false;
 
   @SuppressWarnings("ReferenceEquality") // See comments in setUpstreamFormat
   private synchronized int readSampleMetadata(
@@ -576,14 +574,9 @@ public class SampleQueue implements TrackOutput {
           }
         }
 
-        if (!needUpdateDrmSession) {
-          if (licenseDuration == 0) {
-            forceSyncDownloadingDrmSession = true;
-            needUpdateDrmSession = true;
-          } else if (licenseDuration <= C.MAX_LICENSE_DURATION_TO_RENEW_SECONDS && (flags[relativeReadIndex] & C.BUFFER_FLAG_KEY_FRAME) != 0) {
-            needUpdateDrmSession = true;
+          if (licenseDuration >= 0 && licenseDuration <= C.MAX_LICENSE_DURATION_TO_RENEW_SECONDS && (flags[relativeReadIndex] & C.BUFFER_FLAG_KEY_FRAME) != 0) {
+            downstreamFormat = downstreamFormat.copyWithLabel(downstreamFormat.label);
           }
-        }
       }
     }
 
@@ -621,14 +614,6 @@ public class SampleQueue implements TrackOutput {
     extrasHolder.cryptoData = cryptoDatas[relativeReadIndex];
 
     readPosition++;
-
-    if (needUpdateDrmSession) {
-      needUpdateDrmSession = false;
-      licenseDownloadRunned = false;
-      updateDrmSession(formats[relativeReadIndex], formatHolder);
-      buffer.addFlag(C.BUFFER_FLAG_UPDATE_DRM_SESSION);
-      return C.RESULT_BUFFER_READ;
-    }
 
     return C.RESULT_BUFFER_READ;
   }
@@ -825,10 +810,10 @@ public class SampleQueue implements TrackOutput {
     DrmInitData newDrmInitData = newFormat.drmInitData;
     outputFormatHolder.includesDrmSession = true;
     outputFormatHolder.drmSession = currentDrmSession;
-    if (!isFirstFormat && oldDrmInitData == newDrmInitData) {
-      // Nothing to do.
-      return;
-    }
+//    if (!isFirstFormat && oldDrmInitData == newDrmInitData) {
+//      // Nothing to do.
+//      return;
+//    }
     // Ensure we acquire the new session before releasing the previous one in case the same session
     // is being used for both DrmInitData.
 
@@ -839,13 +824,6 @@ public class SampleQueue implements TrackOutput {
     DrmInitData newDrmInitData = newFormat.drmInitData;
     DrmSession<?> previousSession = currentDrmSession;
     Looper playbackLooper = Assertions.checkNotNull(Looper.myLooper());
-
-    if (forceSyncDownloadingDrmSession) {
-      forceSyncDownloadingDrmSession = false;
-      if (drmSessionManager instanceof DefaultDrmSessionManager && newDrmInitData != null) {
-        ((DefaultDrmSessionManager) drmSessionManager).downloadLicenseSync(newDrmInitData);
-      }
-    }
 
     currentDrmSession =
             newDrmInitData != null
