@@ -55,14 +55,14 @@ dependencies {
     implementation 'com.google.firebase:firebase-analytics:17.2.2'
     implementation 'com.crashlytics.sdk.android:crashlytics:2.10.1'
 
-    def exoplayerVersion = "2.10.7"
+    def exoplayerVersion = "2.11.3"
 //    implementation "com.google.android.exoplayer:exoplayer-core:$exoplayerVersion"
 //    implementation "com.google.android.exoplayer:exoplayer-dash:$exoplayerVersion"
 //    implementation "com.google.android.exoplayer:exoplayer-hls:$exoplayerVersion"
 //    implementation "com.google.android.exoplayer:exoplayer-ui:$exoplayerVersion"
 //    implementation "com.google.android.exoplayer:extension-okhttp:$exoplayerVersion"
-    implementation project(":exoplayer-extension-okhttp")
     implementation project(":exoplayer-library-core")
+    implementation project(":exoplayer-extension-okhttp")
     implementation project(":exoplayer-library-dash")
     implementation project(":exoplayer-library-hls")
     implementation project(":exoplayer-library-ui")

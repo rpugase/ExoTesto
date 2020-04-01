@@ -389,7 +389,7 @@ public class DefaultDrmSessionManager<T extends ExoMediaCrypto> implements DrmSe
     mode = MODE_PLAYBACK;
     sessions = new ArrayList<>();
     provisioningSessions = new ArrayList<>();
-    requestHandlerThread = new HandlerThread("OfflineDrmSession");
+    requestHandlerThread = new HandlerThread("DrmSessionManagerRequestHandler");
     requestHandlerThread.start();
     requestHandler = new RequestHandler(requestHandlerThread.getLooper());
 

@@ -549,8 +549,8 @@ public class SampleQueue implements TrackOutput {
     // This is a temporary fix for https://github.com/google/ExoPlayer/issues/6155.
     // TODO: Remove it and replace it with a fix that discards samples when writing to the queue.
     boolean hasNextSample;
+    boolean skipDrmChecking = false;
     int relativeReadIndex = C.INDEX_UNSET;
-
     while ((hasNextSample = hasNextSample())) {
       relativeReadIndex = getRelativeIndex(readPosition);
       long timeUs = timesUs[relativeReadIndex];
@@ -576,6 +576,7 @@ public class SampleQueue implements TrackOutput {
 
           if (licenseDuration >= 0 && licenseDuration <= C.MAX_LICENSE_DURATION_TO_RENEW_SECONDS && (flags[relativeReadIndex] & C.BUFFER_FLAG_KEY_FRAME) != 0) {
             downstreamFormat = downstreamFormat.copyWithLabel(downstreamFormat.label);
+            skipDrmChecking = true;
           }
       }
     }
@@ -585,7 +586,7 @@ public class SampleQueue implements TrackOutput {
         buffer.setFlags(C.BUFFER_FLAG_END_OF_STREAM);
         return C.RESULT_BUFFER_READ;
       } else if (upstreamFormat != null && (formatRequired || upstreamFormat != downstreamFormat)) {
-        onFormatResult(Assertions.checkNotNull(upstreamFormat), formatHolder);
+        onFormatResult(Assertions.checkNotNull(upstreamFormat), formatHolder, skipDrmChecking);
         return C.RESULT_FORMAT_READ;
       } else {
         return C.RESULT_NOTHING_READ;
@@ -593,7 +594,7 @@ public class SampleQueue implements TrackOutput {
     }
 
     if (formatRequired || formats[relativeReadIndex] != downstreamFormat) {
-      onFormatResult(formats[relativeReadIndex], formatHolder);
+      onFormatResult(formats[relativeReadIndex], formatHolder, skipDrmChecking);
       return C.RESULT_FORMAT_READ;
     }
 
@@ -795,7 +796,7 @@ public class SampleQueue implements TrackOutput {
    * @param newFormat The new downstream format.
    * @param outputFormatHolder The output {@link FormatHolder}.
    */
-  private void onFormatResult(Format newFormat, FormatHolder outputFormatHolder) {
+  private void onFormatResult(Format newFormat, FormatHolder outputFormatHolder, boolean skipDrmChecking) {
     outputFormatHolder.format = newFormat;
     boolean isFirstFormat = downstreamFormat == null;
     DrmInitData oldDrmInitData = isFirstFormat ? null : downstreamFormat.drmInitData;
@@ -810,10 +811,10 @@ public class SampleQueue implements TrackOutput {
     DrmInitData newDrmInitData = newFormat.drmInitData;
     outputFormatHolder.includesDrmSession = true;
     outputFormatHolder.drmSession = currentDrmSession;
-//    if (!isFirstFormat && oldDrmInitData == newDrmInitData) {
-//      // Nothing to do.
-//      return;
-//    }
+    if (!skipDrmChecking && !isFirstFormat && oldDrmInitData == newDrmInitData) {
+      // Nothing to do.
+      return;
+    }
     // Ensure we acquire the new session before releasing the previous one in case the same session
     // is being used for both DrmInitData.
 

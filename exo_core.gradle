@@ -1,0 +1,20 @@
+// Information for all exoplayer module you can read in Exoplayer/core_settings.gradle
+
+gradle.ext.exoplayerRoot = 'ExoPlayer'
+gradle.ext.exoplayerModulePrefix = 'exoplayer-'
+
+//def rootDir = gradle.ext.exoplayerRoot
+//def modulePrefix = ':' + gradle.ext.exoplayerModulePrefix
+apply from: new File(gradle.ext.exoplayerRoot, 'core_settings.gradle')
+
+//include modulePrefix + 'library-core'
+//include modulePrefix + 'library-dash'
+//include modulePrefix + 'library-hls'
+//include modulePrefix + 'library-ui'
+//include modulePrefix + 'extension-okhttp'
+//
+//project(modulePrefix + 'library-core').projectDir = new File(rootDir, 'library/core')
+//project(modulePrefix + 'library-dash').projectDir = new File(rootDir, 'library/dash')
+//project(modulePrefix + 'library-hls').projectDir = new File(rootDir, 'library/hls')
+//project(modulePrefix + 'library-ui').projectDir = new File(rootDir, 'library/ui')
+//project(modulePrefix + 'extension-okhttp').projectDir = new File(rootDir, 'extensions/okhttp')

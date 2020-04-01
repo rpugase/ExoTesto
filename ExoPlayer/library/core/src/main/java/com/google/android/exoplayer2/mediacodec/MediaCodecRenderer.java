@@ -1187,17 +1187,6 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
       onQueueInputBuffer(buffer);
 
       if (bufferEncrypted) {
-        if (buffer.isDrmEos() && formatHolder != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-          try {
-            setSourceDrmSession((DrmSession<FrameworkMediaCrypto>) formatHolder.drmSession);
-            @Nullable FrameworkMediaCrypto sessionMediaCrypto = sourceDrmSession.getMediaCrypto();
-            mediaCrypto.setMediaDrmSession(sessionMediaCrypto.sessionId);
-            setCodecDrmSession(sourceDrmSession);
-          } catch (MediaCryptoException e) {
-            throw createRendererException(e, inputFormat);
-          }
-        }
-
         MediaCodec.CryptoInfo cryptoInfo = getFrameworkCryptoInfo(buffer, adaptiveReconfigurationBytes);
         codec.queueSecureInputBuffer(inputIndex, 0, cryptoInfo, presentationTimeUs, 0);
       } else {
@@ -1386,7 +1375,7 @@ public abstract class MediaCodecRenderer extends BaseRenderer {
    */
   protected @KeepCodecResult int canKeepCodec(
       MediaCodec codec, MediaCodecInfo codecInfo, Format oldFormat, Format newFormat) {
-    return KEEP_CODEC_RESULT_YES_WITHOUT_RECONFIGURATION;
+    return KEEP_CODEC_RESULT_NO;
   }
 
   @Override
